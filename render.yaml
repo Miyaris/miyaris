@@ -22,11 +22,17 @@ services:
     name: miyaris-backend
     runtime: docker
     plan: starter        # Free de çalışır; starter request log + uptime sağlar
-    region: frankfurt    # TR'ye en yakın region
+    region: frankfurt    # TR'ye en yakın region — DB ile aynı region OLMALI
+                         # (Internal URL aynı region'da çalışır)
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /health
     autoDeploy: true     # main branch push → otomatik deploy
+    # PreDeploy — Render bunu ayrı ephemeral container'da çalıştırır;
+    # DB network'ü kesinlikle hazır olduktan SONRA migration uygulanır.
+    # Bu fail ederse web service hiç başlamaz. Container CMD'sindeki
+    # alembic yine idempotent olarak çalışır (defansif çift güvence).
+    preDeployCommand: "python scripts/wait_for_db.py && alembic upgrade head"
     envVars:
       # ---- DB & Cache ----
       - key: DATABASE_URL

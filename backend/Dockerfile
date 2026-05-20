@@ -78,9 +78,12 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import os,sys,urllib.request; \
 sys.exit(0 if urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\",\"8000\")}/health', timeout=3).status==200 else 1)" || exit 1
 
-# Render `$PORT` env'i ile portu enjekte eder. Container başlangıcında migration'ı
-# uygula, sonra uvicorn'u proxy-headers ile çalıştır.
-#  - --workers 2  → küçük plan için yeterli; daha büyük plan için arttır.
-#  - --proxy-headers + --forwarded-allow-ips='*' → Render reverse proxy
-#    arkasında client IP/scheme header'larını doğru oku.
-CMD ["sh", "-c", "alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips='*'"]
+# Container açılış sırası:
+#  1. wait_for_db.py — DB hostname'i çözülene + connection açılana kadar bekle
+#     (Render'da yeni provision sırasında DNS propagation gecikmesi olabilir).
+#  2. alembic upgrade head — migration'ları uygula (idempotent).
+#  3. uvicorn — production modunda FastAPI'yi ayağa kaldır.
+#
+# `--proxy-headers + --forwarded-allow-ips='*'` Render reverse proxy arkasında
+# client IP/scheme header'larını doğru okur.
+CMD ["sh", "-c", "python scripts/wait_for_db.py && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips='*'"]

@@ -10,10 +10,19 @@ def _normalize_database_url(url: str) -> str:
     SQLAlchemy default'u psycopg2'dir; biz tüm stack'i asyncpg ile çalıştığımız
     için URL'in `postgresql+asyncpg://` ile başladığından emin oluruz.
 
-    Heroku-uyumluluk: `postgres://` (deprecated) → `postgresql+asyncpg://`.
+    Defansif temizlik:
+      - Whitespace strip (env yapıştırırken kayan boşluklar)
+      - Tek/çift tırnak strip (kabuk escape'inden artakalan)
+      - `postgres://` → `postgresql+asyncpg://` (Heroku legacy)
+      - `postgresql://` → `postgresql+asyncpg://`
+      - asyncpg, `sslmode=require` query parametresini desteklemez; SQLAlchemy
+        2.0 onu otomatik tercüme ediyor, ama `sslmode=disable` gibi varyantlar
+        problem çıkarabilir. Burada özel bir dönüşüm yapmıyoruz; sorun olursa
+        ileride `?ssl=true` parametresine çeviririz.
     """
     if not url:
         return url
+    url = url.strip().strip("'\"")
     if url.startswith("postgres://"):
         return "postgresql+asyncpg://" + url[len("postgres://") :]
     if url.startswith("postgresql://"):
