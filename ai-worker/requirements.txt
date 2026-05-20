@@ -1,0 +1,8 @@
+# pyproject.toml ile aynı bağımlılıklar — pip install -e . yapamayan
+# ortamlar için. pyproject.toml asıl kaynaktır; bu dosya senkronize tutulmalı.
+
+httpx>=0.27.0
+pydantic>=2.7.0
+pydantic-settings>=2.3.0
+duckduckgo-search>=6.0.0
+beautifulsoup4>=4.12.0

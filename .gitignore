@@ -1,0 +1,64 @@
+# ============================================================================
+# Miyaris — Repo Kök .gitignore
+# ============================================================================
+
+# OS
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Virtual envs
+.venv/
+venv/
+env/
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+.vercel/
+*.tsbuildinfo
+next-env.d.ts
+
+# Build outputs
+dist/
+build/
+*.egg
+
+# Env dosyaları — secret içerirler, ASLA commit edilmez
+.env
+.env.local
+.env.*.local
+*.env
+
+# Logs
+*.log
+logs/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Docker
+docker-data/
+
+# Alembic (migration'lar commit'lenir; sadece versiyon dosyalarının cache'i hariç)
+backend/alembic/versions/__pycache__/
+
+# Geçici / üretilen dosyalar
+*.bak
+*.tmp
+*.orig

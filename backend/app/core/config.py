@@ -1,0 +1,45 @@
+from functools import lru_cache
+
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env", env_file_encoding="utf-8", extra="ignore"
+    )
+
+    APP_NAME: str = "miyaris"
+    DEBUG: bool = False
+
+    DATABASE_URL: str = Field(
+        default="postgresql+asyncpg://miyaris:miyaris@localhost:5432/miyaris_db"
+    )
+
+    JWT_SECRET_KEY: str = Field(min_length=32)
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+
+    # Servisler arası auth (örn: BBB finans ajanları → Miyaris API).
+    # Kullanıcı JWT'sinden bağımsız, paylaşılan statik anahtar.
+    # X-Service-Key header ile gönderilir. Boş bırakılırsa servis
+    # endpoint'leri hiçbir çağrıyı kabul etmez.
+    SERVICE_API_KEY: str = ""
+
+    # NVİ (KPSPublic) TC kimlik doğrulama servisi.
+    #   Default: False — dev makinesinde ve CI'da kayıt akışı NVİ erişim/
+    #   eşleşme gerektirmesin (NVI servisi MERNİS gecikmelerinden ötürü
+    #   doğru bilgiyle bile zaman zaman 'no match' döndürüyor).
+    #   Production deployment'larında .env'de `NVI_VERIFICATION_ENABLED=true`
+    #   set edilmeli. Kapalıyken kayıt kabul edilir ama `kyc_verified=False`
+    #   olarak işaretlenir → admin manuel onay verir.
+    NVI_VERIFICATION_ENABLED: bool = False
+    NVI_TIMEOUT_SECONDS: float = 10.0
+
+    CORS_ORIGINS: list[str] = ["http://localhost:3000"]
+
+
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()

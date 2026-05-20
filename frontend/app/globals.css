@@ -1,0 +1,34 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply bg-ivory text-charcoal antialiased;
+    font-feature-settings: "ss01", "cv11"; /* Inter ince ayarları */
+  }
+
+  body {
+    @apply font-sans leading-relaxed;
+  }
+
+  h1,
+  h2,
+  h3 {
+    @apply font-display tracking-tight;
+  }
+
+  /* Native form öğelerinin default stilini sıfırla — Tailwind ile yeniden kuruyoruz */
+  input,
+  textarea,
+  select {
+    @apply bg-transparent;
+  }
+}
+
+@layer utilities {
+  /* "Eyebrow" başlıkları — "AÇIK ARTIRMA" gibi uppercase üst etiketler */
+  .eyebrow {
+    @apply text-xs uppercase tracking-widest text-charcoal-300;
+  }
+}
