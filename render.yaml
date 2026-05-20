@@ -32,7 +32,10 @@ services:
     # DB network'ü kesinlikle hazır olduktan SONRA migration uygulanır.
     # Bu fail ederse web service hiç başlamaz. Container CMD'sindeki
     # alembic yine idempotent olarak çalışır (defansif çift güvence).
-    preDeployCommand: "python scripts/wait_for_db.py && alembic upgrade head"
+    #
+    # `cd /app` zorunlu: Render preDeploy bazı durumlarda CWD'yi `/` set'liyor;
+    # alembic.ini'yi bulamıyor ve scripts/ relative path'i kırılıyor.
+    preDeployCommand: "cd /app && python scripts/wait_for_db.py && alembic upgrade head"
     envVars:
       # ---- DB & Cache ----
       - key: DATABASE_URL

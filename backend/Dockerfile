@@ -86,4 +86,4 @@ sys.exit(0 if urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\",\"80
 #
 # `--proxy-headers + --forwarded-allow-ips='*'` Render reverse proxy arkasında
 # client IP/scheme header'larını doğru okur.
-CMD ["sh", "-c", "python scripts/wait_for_db.py && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips='*'"]
+CMD ["sh", "-c", "cd /app && python scripts/wait_for_db.py && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips='*'"]
