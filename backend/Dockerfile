@@ -78,12 +78,16 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
     CMD python -c "import os,sys,urllib.request; \
 sys.exit(0 if urllib.request.urlopen(f'http://localhost:{os.getenv(\"PORT\",\"8000\")}/health', timeout=3).status==200 else 1)" || exit 1
 
-# Container açılış sırası:
-#  1. wait_for_db.py — DB hostname'i çözülene + connection açılana kadar bekle
-#     (Render'da yeni provision sırasında DNS propagation gecikmesi olabilir).
-#  2. alembic upgrade head — migration'ları uygula (idempotent).
-#  3. uvicorn — production modunda FastAPI'yi ayağa kaldır.
+# Container açılış scripti: scripts/startup.sh
+# Adımlar (her birinde net log basar):
+#   1. cd /app — WORKDIR garanti
+#   2. DATABASE_URL env kontrolü
+#   3. wait_for_db.py — DB DNS + connection bekleyişi
+#   4. alembic upgrade head — migration'lar
+#   5. uvicorn — production modunda FastAPI
 #
 # `--proxy-headers + --forwarded-allow-ips='*'` Render reverse proxy arkasında
 # client IP/scheme header'larını doğru okur.
-CMD ["sh", "-c", "cd /app && python scripts/wait_for_db.py && alembic upgrade head && exec uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000} --workers 2 --proxy-headers --forwarded-allow-ips='*'"]
+# `sh` ile invoke ediyoruz; executable bit gerekmiyor, böylece git'in
+# permission bit'ini kaybettiği case'lerde de çalışır.
+CMD ["sh", "/app/scripts/startup.sh"]

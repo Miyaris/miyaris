@@ -28,14 +28,11 @@ services:
     dockerContext: ./backend
     healthCheckPath: /health
     autoDeploy: true     # main branch push → otomatik deploy
-    # PreDeploy — Render bunu ayrı ephemeral container'da çalıştırır;
-    # DB network'ü kesinlikle hazır olduktan SONRA migration uygulanır.
-    # Bu fail ederse web service hiç başlamaz. Container CMD'sindeki
-    # alembic yine idempotent olarak çalışır (defansif çift güvence).
-    #
-    # `cd /app` zorunlu: Render preDeploy bazı durumlarda CWD'yi `/` set'liyor;
-    # alembic.ini'yi bulamıyor ve scripts/ relative path'i kırılıyor.
-    preDeployCommand: "cd /app && python scripts/wait_for_db.py && alembic upgrade head"
+    # NOT: preDeployCommand kullanmıyoruz. Render preDeploy ephemeral
+    # container'ında WORKDIR/ENV taşıması güvenilmez ve sessiz exit 128
+    # alabiliyor. Bunun yerine wait_for_db + alembic + uvicorn zinciri
+    # Docker CMD'de single-process olarak çalışıyor — daha az hareketli
+    # parça, log her zaman görünür.
     envVars:
       # ---- DB & Cache ----
       - key: DATABASE_URL
