@@ -8,7 +8,7 @@ from sqlalchemy import pool
 from sqlalchemy.engine import Connection
 from sqlalchemy.ext.asyncio import async_engine_from_config
 
-from app.core.config import get_settings
+from app.core.config import _normalize_database_url, get_settings
 
 # Tüm modelleri register et — autogenerate metadata'yı buradan okur.
 from app.models import Base  # noqa: F401  (import side effect)
@@ -25,8 +25,14 @@ from app.models import (  # noqa: F401
 
 config = context.config
 
-# alembic.ini'deki sqlalchemy.url'i Settings'ten override et
-config.set_main_option("sqlalchemy.url", get_settings().DATABASE_URL)
+# alembic.ini'deki sqlalchemy.url'i Settings'ten override et.
+# `_normalize_database_url` defensif çağrı — Render'ın verdiği `postgres://`
+# format'ı çift filtreden geçsin (Settings validator + buradaki çağrı).
+# Eski alembic_version kayıtları için de güvenli (DDL etkisi yok).
+config.set_main_option(
+    "sqlalchemy.url",
+    _normalize_database_url(get_settings().DATABASE_URL),
+)
 
 if config.config_file_name is not None:
     fileConfig(config.config_file_name)

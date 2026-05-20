@@ -33,6 +33,7 @@ RUN pip install --upgrade pip setuptools wheel \
         "uvicorn[standard]>=0.30.0" \
         "sqlalchemy[asyncio]>=2.0.30" \
         "asyncpg>=0.29.0" \
+        "psycopg2-binary>=2.9.9" \
         "alembic>=1.13.0" \
         "pydantic>=2.7.0" \
         "pydantic-settings>=2.3.0" \

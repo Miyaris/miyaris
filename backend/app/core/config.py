@@ -1,7 +1,24 @@
 from functools import lru_cache
 
-from pydantic import Field
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+
+def _normalize_database_url(url: str) -> str:
+    """Render / Heroku / GCP gibi platformlar PostgreSQL bağlantısını
+    sürücüsüz format'ta verir (`postgres://...` veya `postgresql://...`).
+    SQLAlchemy default'u psycopg2'dir; biz tüm stack'i asyncpg ile çalıştığımız
+    için URL'in `postgresql+asyncpg://` ile başladığından emin oluruz.
+
+    Heroku-uyumluluk: `postgres://` (deprecated) → `postgresql+asyncpg://`.
+    """
+    if not url:
+        return url
+    if url.startswith("postgres://"):
+        return "postgresql+asyncpg://" + url[len("postgres://") :]
+    if url.startswith("postgresql://"):
+        return "postgresql+asyncpg://" + url[len("postgresql://") :]
+    return url
 
 
 class Settings(BaseSettings):
@@ -15,6 +32,11 @@ class Settings(BaseSettings):
     DATABASE_URL: str = Field(
         default="postgresql+asyncpg://miyaris:miyaris@localhost:5432/miyaris_db"
     )
+
+    @field_validator("DATABASE_URL")
+    @classmethod
+    def _ensure_asyncpg_driver(cls, v: str) -> str:
+        return _normalize_database_url(v)
 
     JWT_SECRET_KEY: str = Field(min_length=32)
     JWT_ALGORITHM: str = "HS256"
