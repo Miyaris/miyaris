@@ -23,7 +23,12 @@ const BACKEND_URL =
 const ACCESS_COOKIE = "miyaris_access";
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+    /** Backend `detail` bir obje ise `code` alanı; örn. "email_not_verified" */
+    public readonly code: string | null = null,
+  ) {
     super(message);
   }
 }
@@ -54,14 +59,21 @@ export async function backendFetch<T>(
   });
 
   if (!res.ok) {
-    let detail = res.statusText;
+    let detail: string = res.statusText;
+    let code: string | null = null;
     try {
       const body = await res.json();
-      detail = body.detail ?? detail;
+      // FastAPI `detail` ya string ya object ({code, message}) olabilir.
+      if (typeof body?.detail === "string") {
+        detail = body.detail;
+      } else if (body?.detail && typeof body.detail === "object") {
+        detail = body.detail.message ?? detail;
+        code = typeof body.detail.code === "string" ? body.detail.code : null;
+      }
     } catch {
       /* JSON değilse default detail */
     }
-    throw new ApiError(res.status, detail);
+    throw new ApiError(res.status, detail, code);
   }
 
   // 204 No Content

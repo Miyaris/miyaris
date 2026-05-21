@@ -22,3 +22,16 @@ class EmailVerifyResponse(BaseModel):
     email: EmailStr
     is_verified: bool
     message: str
+
+
+class ResendVerificationRequest(BaseModel):
+    email: EmailStr
+
+
+class ResendVerificationResponse(BaseModel):
+    """Enumeration sızıntısını önlemek için her zaman aynı mesaj."""
+
+    message: str = (
+        "Eğer bu adres sistemimizde kayıtlı ve doğrulanmamışsa, "
+        "yeni bir doğrulama linki gönderildi."
+    )

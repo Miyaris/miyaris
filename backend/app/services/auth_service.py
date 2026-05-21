@@ -18,7 +18,12 @@ from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate
 from app.services.email_service import send_verification_email
 from app.services.nvi_service import verify_tc_with_nvi
-from app.utils.exceptions import APIError, AuthError, ConflictError
+from app.utils.exceptions import (
+    APIError,
+    AuthError,
+    ConflictError,
+    EmailNotVerifiedError,
+)
 
 
 async def register_user(db: AsyncSession, payload: UserCreate) -> User:
@@ -103,6 +108,11 @@ async def authenticate(db: AsyncSession, email: str, password: str) -> User:
         raise AuthError("E-posta veya şifre hatalı")
     if not user.is_active:
         raise AuthError("Hesap pasif durumda")
+    # E-posta doğrulama zorunlu — kayıt anında gönderilen linke tıklanmadıkça
+    # giriş engellenir. Frontend bu hatayı (403 + code=email_not_verified)
+    # yakalayıp kullanıcıyı uygun ekrana yönlendirir.
+    if not user.is_verified:
+        raise EmailNotVerifiedError()
     return user
 
 
@@ -111,6 +121,24 @@ def issue_tokens(user_id: uuid.UUID) -> TokenResponse:
         access_token=create_access_token(user_id),
         refresh_token=create_refresh_token(user_id),
     )
+
+
+async def resend_verification_email(db: AsyncSession, email: str) -> None:
+    """E-posta doğrulama linkini tekrar gönder.
+
+    Defansif:
+      - Kullanıcı yoksa veya zaten doğrulanmışsa enumeration leak'ini önlemek
+        için sessizce başarı dön (200 OK). Frontend "mail tekrar gönderildi"
+        mesajı gösterir; saldırgan hangi e-postaların kayıtlı olduğunu
+        anlayamaz.
+      - is_active=False ise de gönderilmez (pasif hesap).
+    """
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if user is None or user.is_verified or not user.is_active:
+        return
+    token = create_email_verify_token(user.id)
+    await send_verification_email(user, token)
 
 
 async def verify_email_token(db: AsyncSession, token: str) -> User:

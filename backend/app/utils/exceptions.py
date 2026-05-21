@@ -23,3 +23,23 @@ class NotFoundError(APIError):
 class ConflictError(APIError):
     def __init__(self, detail: str = "Çakışan işlem"):
         super().__init__(status_code=status.HTTP_409_CONFLICT, detail=detail)
+
+
+class EmailNotVerifiedError(APIError):
+    """Login denemesinde e-posta doğrulanmamışsa fırlatılır.
+
+    403 Forbidden ile özel `code` taşır; frontend bu kod'u görünce kullanıcıyı
+    "E-postanı doğrula" mesajıyla bilgilendirir + resend linki gösterir.
+    """
+
+    def __init__(
+        self,
+        detail: str = (
+            "E-posta adresiniz henüz doğrulanmadı. "
+            "Lütfen kayıt sırasında gönderilen doğrulama linkine tıklayın."
+        ),
+    ):
+        super().__init__(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail={"code": "email_not_verified", "message": detail},
+        )

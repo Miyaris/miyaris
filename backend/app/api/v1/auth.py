@@ -8,6 +8,8 @@ from app.schemas.auth import (
     EmailVerifyResponse,
     LoginRequest,
     RefreshRequest,
+    ResendVerificationRequest,
+    ResendVerificationResponse,
     TokenResponse,
 )
 from app.schemas.user import UserCreate, UserPublic
@@ -46,6 +48,19 @@ async def verify_email(
         is_verified=user.is_verified,
         message="E-posta adresiniz başarıyla doğrulandı.",
     )
+
+
+@router.post("/resend-verification", response_model=ResendVerificationResponse)
+async def resend_verification(
+    payload: ResendVerificationRequest, db: AsyncSession = Depends(get_db)
+):
+    """Doğrulama linki tekrar gönder.
+
+    Enumeration leak'ini önlemek için her zaman aynı 200 cevabı döner — kayıtlı
+    olmayan veya zaten doğrulanmış adresler için işlem sessizce no-op olur.
+    """
+    await auth_service.resend_verification_email(db, payload.email)
+    return ResendVerificationResponse()
 
 
 @router.post("/login", response_model=TokenResponse)

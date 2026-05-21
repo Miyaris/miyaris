@@ -30,7 +30,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: true });
   } catch (e) {
     if (e instanceof ApiError) {
-      return NextResponse.json({ detail: e.message }, { status: e.status });
+      return NextResponse.json(
+        { detail: e.message, code: e.code },
+        { status: e.status },
+      );
     }
     return NextResponse.json(
       { detail: "Beklenmeyen bir hata oluştu" },
