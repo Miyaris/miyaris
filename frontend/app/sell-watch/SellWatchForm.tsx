@@ -485,7 +485,7 @@ function EarningsWidget({
   return (
     <div className="border border-charcoal p-8 bg-ivory">
       <div className="flex items-baseline justify-between mb-6">
-        <h3 className="font-display text-2xl">Hak Ediş Widget&apos;ı</h3>
+        <h3 className="font-display text-2xl">Kazanç Özeti</h3>
         <span className="eyebrow text-charcoal-300">Kademeli Komisyon</span>
       </div>
 

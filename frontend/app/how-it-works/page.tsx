@@ -191,7 +191,7 @@ export default function HowItWorksPage() {
             ))}
           </div>
           <p className="mt-6 text-xs text-charcoal-300 tracking-wide">
-            Hak Ediş Widget'ı, ilan formunda fiyat yazdığınız anda canlı
+            Kazanç Özeti, ilan formunda fiyat yazdığınız anda canlı
             olarak komisyon, net kazanç ve ortalama oranı gösterir.
           </p>
         </Container>
