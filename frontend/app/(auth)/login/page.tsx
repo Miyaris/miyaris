@@ -14,7 +14,7 @@ export default function LoginPage({
         <span className="eyebrow">Hoş geldiniz</span>
         <h1 className="font-display text-4xl mt-4">Giriş Yap</h1>
       </div>
-      <LoginForm next={searchParams.next ?? "/auctions"} />
+      <LoginForm next={searchParams.next ?? "/"} />
       <p className="text-center mt-8 text-sm text-charcoal-500">
         Henüz hesabınız yok mu?{" "}
         <a
