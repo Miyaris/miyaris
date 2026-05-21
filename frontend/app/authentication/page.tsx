@@ -46,13 +46,13 @@ const STAGES: Stage[] = [
   {
     num: "02",
     eyebrow: "Görsel Ekspertiz",
-    title: "Loupe Altında Çok Noktadan İnceleme",
+    title: "Büyüteç Altında Çok Noktadan İnceleme",
     intro:
-      "Sertifikalı saat uzmanlarımız her saati 10x büyütmeli loupe ile inceler. Hareket, kadran, kasa, taç ve case-back tek tek karşılaştırılır; üretici imzaları ve seri numaraları referans kayıtlarımızla doğrulanır.",
+      "Sertifikalı saat uzmanlarımız her saati 10x büyütmeli büyüteç ile inceler. Hareket, kadran, kasa, taç ve kasa arkası tek tek karşılaştırılır; üretici imzaları ve seri numaraları referans kayıtlarımızla doğrulanır.",
     checklist: [
       {
         title: "Kadran & kavrama detayı",
-        body: "Endeks aplikleri, taç logoları, baskı kalitesi — üreticinin orijinal toleranslarıyla kıyaslanır.",
+        body: "Kadran detayları ve indeksler, taç logoları, baskı kalitesi — üreticinin orijinal toleranslarıyla kıyaslanır.",
       },
       {
         title: "Hareket (movement)",
@@ -69,11 +69,11 @@ const STAGES: Stage[] = [
     eyebrow: "Teknik Doğrulama",
     title: "Mekanik & Su Geçirmezlik Testleri",
     intro:
-      "Görsel inceleme yeterli değildir. Saatin gerçekten çalıştığını ve üreticinin ilan ettiği toleranslarda performans gösterdiğini doğrulamak için kalibre çıkış raporu üretilir.",
+      "Görsel inceleme yeterli değildir. Saatin gerçekten çalıştığını ve üreticinin ilan ettiği toleranslarda performans gösterdiğini doğrulamak için mekanizma performans raporu üretilir.",
     checklist: [
       {
-        title: "Timegrapher ölçümü",
-        body: "Saatin saniyedeki sapması (±s/gün), beat error, amplitüd değerleri 6 pozisyonda kayıt altına alınır.",
+        title: "Mekanik Hassasiyet Ölçümü",
+        body: "Günlük saniye sapması, vuruş hatası ve mekanizma salınım değerleri 6 pozisyonda kayıt altına alınır.",
       },
       {
         title: "Su geçirmezlik (talep üzerine)",
@@ -138,9 +138,9 @@ export default function AuthenticationPage() {
             </h1>
             <p className="mt-8 text-lg text-charcoal-500 leading-relaxed">
               Miyaris'te yayına çıkan her saat fiziksel olarak elimize ulaşır;
-              uzmanlarımız loupe altında, timegrapher önünde ve referans
-              arşivimizle karşılaştırarak doğrular. Sahte saatin Miyaris
-              vitrinine girmesi yapısal olarak mümkün değildir.
+              uzmanlarımız büyüteç altında, hassasiyet ölçüm cihazları önünde
+              ve referans arşivimizle karşılaştırarak doğrular. Sahte saatin
+              Miyaris vitrinine girmesi yapısal olarak mümkün değildir.
             </p>
           </div>
         </Container>
