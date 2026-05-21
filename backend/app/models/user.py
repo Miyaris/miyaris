@@ -58,6 +58,11 @@ class User(Base, TimestampMixin):
     mersis_no: Mapped[str | None] = mapped_column(String(16), unique=True)
     kyc_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # E-posta doğrulama (Resend ile) — kullanıcı linke tıklayıp tıklamadığı.
+    # Kayıt anında False; /api/v1/auth/verify-email başarılı olduğunda True.
+    is_verified: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False
+    )
 
     # NOT: ilişkiler `lazy="select"` (default) — User her seferinde
     # otomatik olarak watches/bids yüklemesin. login ve auth dependency'leri

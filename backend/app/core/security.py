@@ -61,3 +61,41 @@ def create_refresh_token(subject: uuid.UUID) -> str:
 
 def decode_token(token: str) -> dict[str, Any]:
     return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM])
+
+
+# ----- E-posta doğrulama token'ları -----------------------------------------
+# Erişim/refresh token'larından bağımsız bir tür: "email_verify". Token içinde
+# user_id (sub) ve type alanı taşır, default 24 saat geçerli.
+
+_EMAIL_VERIFY_TOKEN_TYPE = "email_verify"
+
+
+def create_email_verify_token(user_id: uuid.UUID) -> str:
+    """24 saat (default) geçerli, e-posta doğrulama JWT'si üret."""
+    expire = datetime.now(timezone.utc) + timedelta(
+        hours=settings.EMAIL_VERIFY_EXPIRE_HOURS
+    )
+    payload: dict[str, Any] = {
+        "sub": str(user_id),
+        "exp": expire,
+        "iat": datetime.now(timezone.utc),
+        "type": _EMAIL_VERIFY_TOKEN_TYPE,
+    }
+    return jwt.encode(payload, settings.JWT_SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
+
+
+def decode_email_verify_token(token: str) -> uuid.UUID:
+    """Token'ı parse et + tip doğrula → user_id döner.
+
+    `jose.JWTError` (süresi dolmuş, imza geçersiz vb.) çağıranın yakalaması
+    gereken hata. Tip uyuşmuyorsa `ValueError` fırlatır.
+    """
+    payload = jwt.decode(
+        token, settings.JWT_SECRET_KEY, algorithms=[settings.JWT_ALGORITHM]
+    )
+    if payload.get("type") != _EMAIL_VERIFY_TOKEN_TYPE:
+        raise ValueError("Token tipi e-posta doğrulama için uygun değil")
+    sub = payload.get("sub")
+    if not sub:
+        raise ValueError("Token sub alanı boş")
+    return uuid.UUID(sub)

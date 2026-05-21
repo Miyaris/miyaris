@@ -6,6 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.security import (
     create_access_token,
+    create_email_verify_token,
     create_refresh_token,
     decode_token,
     hash_password,
@@ -15,6 +16,7 @@ from app.core.config import get_settings
 from app.models.user import User
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate
+from app.services.email_service import send_verification_email
 from app.services.nvi_service import verify_tc_with_nvi
 from app.utils.exceptions import APIError, AuthError, ConflictError
 
@@ -83,6 +85,14 @@ async def register_user(db: AsyncSession, payload: UserCreate) -> User:
     db.add(user)
     await db.commit()
     await db.refresh(user)
+
+    # E-posta doğrulama mail'i — 24 saat geçerli JWT'li link Resend'le gider.
+    # Gönderim hatası kullanıcı kaydını GERİ ALMAZ; email_service zaten kendi
+    # içinde swallow ediyor (log'a yazar). Kullanıcı tekrar tetiklemek isterse
+    # ileride /auth/resend-verification endpoint'i eklenebilir.
+    verify_token = create_email_verify_token(user.id)
+    await send_verification_email(user, verify_token)
+
     return user
 
 
@@ -101,6 +111,43 @@ def issue_tokens(user_id: uuid.UUID) -> TokenResponse:
         access_token=create_access_token(user_id),
         refresh_token=create_refresh_token(user_id),
     )
+
+
+async def verify_email_token(db: AsyncSession, token: str) -> User:
+    """E-posta doğrulama akışını tamamla.
+
+    - Token'ı parse et + tip kontrolü (security.decode_email_verify_token)
+    - User'ı bul → zaten doğrulanmışsa idempotent: tekrar mail atmaz
+    - is_verified=True olarak güncelle, commit
+    - Welcome mail tetikle (Resend)
+    """
+    from app.core.security import decode_email_verify_token  # local import — döngüyü önler
+
+    try:
+        user_id = decode_email_verify_token(token)
+    except (JWTError, ValueError) as e:
+        raise AuthError("Doğrulama linki geçersiz veya süresi dolmuş") from e
+
+    user = (
+        await db.execute(select(User).where(User.id == user_id))
+    ).scalar_one_or_none()
+    if user is None:
+        raise AuthError("Kullanıcı bulunamadı")
+
+    if user.is_verified:
+        # Idempotent — kullanıcı linke ikinci kez tıkladıysa hata vermeden geç,
+        # welcome mail tekrar atılmasın.
+        return user
+
+    user.is_verified = True
+    await db.commit()
+    await db.refresh(user)
+
+    # Welcome mail — failure swallow'lu, log'a yazar
+    from app.services.email_service import send_welcome_email
+    await send_welcome_email(user)
+
+    return user
 
 
 async def refresh_access_token(db: AsyncSession, refresh_token: str) -> TokenResponse:

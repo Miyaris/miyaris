@@ -69,6 +69,19 @@ services:
       # ---- Scheduler — tek instance'ta açık, ölçeklenirken sadece bir tanesi 1 olmalı ----
       - key: RUN_SCHEDULER
         value: "1"
+      # ---- Resend (transaktif e-posta) ----
+      # RESEND_API_KEY: dashboard'da manuel set (zaten Render env'inde). render.yaml'a
+      # sync: false ile yer açıyoruz ki Blueprint bunu yönetsin, key'in kendisi
+      # repo'ya sızmasın.
+      - key: RESEND_API_KEY
+        sync: false
+      - key: EMAIL_FROM
+        value: "Miyaris <noreply@miyaris.com>"
+      # Doğrulama linki bu URL'in altına /verify-email?token=... şeklinde yapışır.
+      - key: FRONTEND_URL
+        value: "https://www.miyaris.com"
+      - key: EMAIL_VERIFY_EXPIRE_HOURS
+        value: "24"
       # ---- Python ----
       - key: PYTHON_VERSION
         value: "3.11"

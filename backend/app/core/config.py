@@ -70,6 +70,22 @@ class Settings(BaseSettings):
 
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
 
+    # ---- E-posta (Resend) ----
+    # Resend transactional e-mail service. RESEND_API_KEY production'da Render
+    # env'den gelir; boş bırakılırsa email_service "skipped" mod'una geçer
+    # (geliştirme makinesinde kayıt akışını bloklamadan kullanılabilir).
+    RESEND_API_KEY: str = ""
+    # Gönderici adresi — Resend dashboard'da doğrulanmış domain'le aynı olmalı.
+    # Default: production domain'i. Lokal/dev: noreply@miyaris.com hâlâ çalışır
+    # ama mail aslında Resend dashboard'unda görünür yalnızca.
+    EMAIL_FROM: str = "Miyaris <noreply@miyaris.com>"
+    # Frontend ana adresi — doğrulama linkinde kullanılır (link kullanıcının
+    # tarayıcısında açılır → /verify-email?token=... → frontend backend'i çağırır
+    # veya doğrudan backend endpoint'ine yönlendirir).
+    FRONTEND_URL: str = "http://localhost:3000"
+    # Doğrulama token'ı geçerlilik süresi (saat). 24 saat default.
+    EMAIL_VERIFY_EXPIRE_HOURS: int = 24
+
 
 @lru_cache
 def get_settings() -> Settings:

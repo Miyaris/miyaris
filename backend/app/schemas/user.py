@@ -105,6 +105,9 @@ class UserPublic(UserBase):
     last_name: str | None = None
     birth_year: int | None = None
     kyc_verified: bool
+    # E-posta doğrulama durumu — kayıt anında False, /auth/verify-email başarılı
+    # olduğunda True. Frontend gate'leme için bu alanı kullanabilir.
+    is_verified: bool = False
     tc_kimlik_no: str | None = None
     mersis_no: str | None = None
     created_at: datetime

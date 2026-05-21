@@ -42,7 +42,8 @@ RUN pip install --upgrade pip setuptools wheel \
         "python-multipart>=0.0.9" \
         "email-validator>=2.2.0" \
         "python-slugify>=8.0.4" \
-        "httpx>=0.27.0"
+        "httpx>=0.27.0" \
+        "resend>=0.7.0"
 
 # ---------- RUNTIME AŞAMASI: minimal image ----------
 FROM python:3.11-slim AS runtime

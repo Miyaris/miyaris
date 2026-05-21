@@ -14,3 +14,11 @@ class TokenResponse(BaseModel):
 
 class RefreshRequest(BaseModel):
     refresh_token: str
+
+
+class EmailVerifyResponse(BaseModel):
+    """`/auth/verify-email` GET cevabı — yalın özet."""
+
+    email: EmailStr
+    is_verified: bool
+    message: str
