@@ -214,8 +214,8 @@ export function AuctionForm({ watchId, valuationMin, valuationMax }: Props) {
             </span>
             <span className="block text-xs text-charcoal-300 mt-0.5">
               Saatiniz {formatDateTR(monday)} 00:00'da yayına çıkacak ve{" "}
-              {formatDateTR(sunday)} 23:59'da kapanacak. Anti-sniping kuralı
-              gereği son 5 dakikadaki teklifler süreyi 5 dakika uzatır.
+              {formatDateTR(sunday)} 23:59'da kapanacak. Son saniye teklif
+              koruması gereği son 5 dakikadaki teklifler süreyi 5 dakika uzatır.
             </span>
           </div>
         </label>

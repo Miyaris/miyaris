@@ -12,7 +12,7 @@ import { formatUSD } from "@/lib/format";
 import type { EscrowDetail } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Escrow Yönetimi" };
+export const metadata = { title: "Güvenli Kasa Yönetimi" };
 
 async function getEscrow(id: string): Promise<EscrowDetail | null> {
   try {
@@ -45,7 +45,7 @@ export default async function AdminEscrowDetailPage({
         href="/admin/escrow"
         className="text-xs tracking-widest uppercase text-charcoal-500 hover:text-brass border-b border-current pb-0.5"
       >
-        ← Escrow listesi
+        ← Güvenli Kasa listesi
       </Link>
 
       <div className="mt-8 grid lg:grid-cols-12 gap-12">

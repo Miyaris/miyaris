@@ -98,7 +98,7 @@ export function StateActions({ escrowId, status }: Props) {
       <div className="border border-line bg-ivory-50 p-6">
         <span className="eyebrow mb-2 block">İşlem Tamamlandı</span>
         <p className="text-sm text-charcoal-500">
-          Bu escrow için yapılacak başka bir aksiyon yok.
+          Bu güvenli kasa işlemi için yapılacak başka bir aksiyon yok.
         </p>
       </div>
     );

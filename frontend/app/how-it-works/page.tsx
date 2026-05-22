@@ -19,7 +19,7 @@ const AUCTION_STEPS: Step[] = [
   {
     num: "02",
     title: "Haftalık Açık Artırma",
-    body: "Onaylı saatiniz her Pazartesi 00:00'da açılan, Pazar 23:59'da kapanan müzayedeye dahil edilir. Anti-sniping korumasıyla son dakika rekabeti güvenli kalır. Rezerv fiyatınızın altında teklif gelirse satış olmaz; üstünde gelirse en yüksek teklif kazanır.",
+    body: "Onaylı saatiniz her Pazartesi 00:00'da açılan, Pazar 23:59'da kapanan müzayedeye dahil edilir. Son saniye teklif koruması ile kapanış anındaki rekabet adil kalır. Rezerv fiyatınızın altında teklif gelirse satış olmaz; üstünde gelirse en yüksek teklif kazanır.",
   },
   {
     num: "03",
@@ -98,7 +98,7 @@ export default function HowItWorksPage() {
             bullets={[
               "Ön ekspertiz zorunlu — ilan müzayedeye çıkmadan onay alır",
               "Pazartesi 00:00 → Pazar 23:59 haftalık pencere",
-              "Anti-sniping korumalı canlı teklif sistemi",
+              "Son saniye teklif koruması ile canlı teklif sistemi",
               "İsteğe bağlı 'Hemen Al' fiyatıyla müzayedeyi sonlandırma",
             ]}
             ctaLabel="Müzayedeleri Gör"
@@ -202,13 +202,13 @@ export default function HowItWorksPage() {
         <Container className="py-24 grid md:grid-cols-3 gap-12">
           <Pillar
             label="Güvenli Kasa"
-            title="Escrow Koruması"
+            title="Emanet Koruması"
             body="Alıcının ödemesi Miyaris emanet hesabında tutulur. Saat alıcıya ulaşıp doğrulanmadan satıcıya transfer edilmez; partner mağaza zinciri her teslimde fiziksel mühür kontrolü yapar."
           />
           <Pillar
             label="EFT Avantajı"
             title="%2.5 İndirim"
-            body="Banka havalesi seçen alıcılara otomatik %2.5 indirim. Yasal düzenleme gereği kredi kartı surcharge'ı yok — onun yerine havale tercihine ödül."
+            body="Banka havalesi seçen alıcılara otomatik %2.5 indirim. Yasal düzenleme gereği kredi kartı ek ücreti yok — onun yerine havale tercihine ödül."
           />
           <Pillar
             label="KYC"

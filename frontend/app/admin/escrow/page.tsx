@@ -7,7 +7,7 @@ import { formatTRY } from "@/lib/format";
 import type { EscrowListItem } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Escrow Yönetimi" };
+export const metadata = { title: "Güvenli Kasa Yönetimi" };
 
 async function getActiveEscrow(): Promise<EscrowListItem[]> {
   try {
@@ -28,7 +28,7 @@ export default async function AdminEscrowPage() {
       <header className="mb-10 border-b border-line pb-6">
         <span className="eyebrow text-brass-dark">Yönetim</span>
         <div className="flex items-baseline justify-between mt-3">
-          <h1 className="font-display text-4xl">Aktif Escrow Akışları</h1>
+          <h1 className="font-display text-4xl">Aktif Güvenli Kasa Akışları</h1>
           <span className="text-sm text-charcoal-500 tabular-nums">
             {items.length} açık işlem
           </span>
@@ -40,7 +40,7 @@ export default async function AdminEscrowPage() {
 
       {items.length === 0 ? (
         <div className="py-24 text-center text-charcoal-300 eyebrow">
-          Aktif escrow akışı yok
+          Aktif güvenli kasa akışı yok
         </div>
       ) : (
         <div className="border-y border-line">

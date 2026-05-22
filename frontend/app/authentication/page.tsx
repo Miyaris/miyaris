@@ -55,7 +55,7 @@ const STAGES: Stage[] = [
         body: "Kadran detayları ve indeksler, taç logoları, baskı kalitesi — üreticinin orijinal toleranslarıyla kıyaslanır.",
       },
       {
-        title: "Hareket (movement)",
+        title: "Mekanizma",
         body: "Köprü işlemeleri, rotor süslemeleri, rubi yatak sayısı: orijinal kalibrenin imza özellikleri tek tek doğrulanır.",
       },
       {
