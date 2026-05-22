@@ -7,6 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import admin, auctions, auth, orders, service, watches
+from app.core.bootstrap import promote_seed_admins
 from app.core.config import get_settings
 from app.services.scheduler import scheduler_loop
 from app.websockets import auction_ws
@@ -21,6 +22,14 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     Scheduler'ı varsayılan olarak başlatırız. Multi-replica ortamda yalnızca tek
     instance çalıştırmak için `RUN_SCHEDULER=0` env'i set'lenebilir.
     """
+    # Seed admin'leri ADMIN_EMAILS env'inden veritabanına yansıt.
+    # Hata fırlatmaz — başarısız olursa log'a yazılır ve uygulama yine
+    # ayağa kalkar (mevcut admin'ler hâlâ giriş yapabilir).
+    try:
+        await promote_seed_admins()
+    except Exception:
+        logger.exception("Seed admin bootstrap unexpectedly failed")
+
     task: asyncio.Task[None] | None = None
     if os.getenv("RUN_SCHEDULER", "1") != "0":
         task = asyncio.create_task(scheduler_loop(), name="auction-scheduler")

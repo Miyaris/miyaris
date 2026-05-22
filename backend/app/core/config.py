@@ -86,6 +86,35 @@ class Settings(BaseSettings):
     # Doğrulama token'ı geçerlilik süresi (saat). 24 saat default.
     EMAIL_VERIFY_EXPIRE_HOURS: int = 24
 
+    # ---- Seed admin'ler ----
+    # Virgülle ayrılmış e-posta listesi. Container her açıldığında, bu
+    # listede bulunan ve veritabanında zaten kayıtlı olan kullanıcıların
+    # rolü otomatik olarak `admin` olarak güncellenir (idempotent).
+    # Kayıtlı olmayan e-postalar sessizce atlanır — önce normal kayıt akışı
+    # ile hesabı açıp e-postayı doğrulamak gerekir; sonraki container restart'ta
+    # promote edilir.
+    # Format: "admin1@miyaris.com,admin2@miyaris.com"
+    # Production'da Render dashboard → Environment → ADMIN_EMAILS olarak set'le.
+    ADMIN_EMAILS: str = ""
+
+    @property
+    def admin_email_list(self) -> list[str]:
+        """ADMIN_EMAILS env'ini normalize edilmiş liste olarak döndürür.
+
+        - Virgülle ayrılır
+        - Boşluklar trim'lenir
+        - Küçük harfe normalize edilir (DB email kolonu unique index'li,
+          domain karşılaştırması case-insensitive olmalı)
+        - Boş entry'ler filtrelenir
+        """
+        if not self.ADMIN_EMAILS:
+            return []
+        return [
+            email.strip().lower()
+            for email in self.ADMIN_EMAILS.split(",")
+            if email.strip()
+        ]
+
 
 @lru_cache
 def get_settings() -> Settings:

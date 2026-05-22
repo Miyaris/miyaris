@@ -82,6 +82,16 @@ services:
         value: "https://www.miyaris.com"
       - key: EMAIL_VERIFY_EXPIRE_HOURS
         value: "24"
+      # ---- Seed admin'ler ----
+      # Virgülle ayrılmış e-posta listesi. Container her açıldığında, bu
+      # listedeki kayıtlı kullanıcılar otomatik olarak `role=admin` olur ve
+      # `is_verified=True` işaretlenir. Önce normal /register akışıyla
+      # hesap aç, sonra Render dashboard'da bu env'e e-postanı ekle ve
+      # "Manual Deploy → Clear cache & deploy" tıkla. Container yeniden
+      # açıldığında admin rolü atanır.
+      # Format: "admin1@miyaris.com,admin2@miyaris.com"
+      - key: ADMIN_EMAILS
+        sync: false
       # ---- Python ----
       - key: PYTHON_VERSION
         value: "3.11"
