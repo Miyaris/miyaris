@@ -3,8 +3,8 @@
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
+import { FileUploader } from "@/components/shared/FileUploader";
 import { Button } from "@/components/ui/Button";
-import { Input } from "@/components/ui/Input";
 import type { AuthenticityVerdict } from "@/lib/types";
 
 interface VerdictOption {
@@ -51,6 +51,10 @@ export function CertificateForm({ watchId }: { watchId: string }) {
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    if (!pdfUrl) {
+      setError("Ekspertiz belgesi yüklenmeden form gönderilemez");
+      return;
+    }
     setPending(true);
     try {
       const res = await fetch(`/api/admin/watches/${watchId}/certificate`, {
@@ -154,15 +158,46 @@ export function CertificateForm({ watchId }: { watchId: string }) {
         />
       </div>
 
-      <Input
-        label="Ekspertiz Belgesi PDF URL"
-        type="url"
-        value={pdfUrl}
-        onChange={(e) => setPdfUrl(e.target.value)}
-        placeholder="https://..."
-        required
-        hint="Partner mağaza tarafından imzalanmış ekspertiz raporunu storage'a yükleyip URL'sini yapıştır"
-      />
+      <div>
+        <span className="eyebrow block mb-2">Ekspertiz Belgesi</span>
+        <p className="text-xs text-charcoal-300 mb-3 leading-relaxed">
+          Partner mağaza tarafından imzalanmış ekspertiz raporunu yükleyin —
+          PDF veya fotoğraf olabilir. Telefondan çekip doğrudan
+          ekleyebilirsiniz.
+        </p>
+        {pdfUrl ? (
+          <div className="flex items-center justify-between gap-3 border border-line bg-ivory-50 px-4 py-3">
+            <div className="min-w-0 flex-1">
+              <p className="text-xs text-brass-dark tracking-widest uppercase">
+                Yüklendi
+              </p>
+              <a
+                href={pdfUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="text-sm text-charcoal-700 hover:text-brass underline-offset-4 hover:underline truncate block"
+              >
+                {pdfUrl.split("/").pop() ?? "Belge"}
+              </a>
+            </div>
+            <button
+              type="button"
+              onClick={() => setPdfUrl("")}
+              className="text-xs uppercase tracking-widest text-charcoal-500 hover:text-burgundy border border-line px-3 py-1.5"
+            >
+              Değiştir
+            </button>
+          </div>
+        ) : (
+          <FileUploader
+            accept="application/pdf,image/jpeg,image/png,image/webp,image/heic,image/heif"
+            label="Ekspertiz Belgesini Yükle"
+            onUploaded={(url) => setPdfUrl(url)}
+          />
+        )}
+        {/* Backend hâlâ pdf_url field'ı bekliyor — submit'te bu state gönderilir */}
+        <input type="hidden" name="pdf_url" value={pdfUrl} />
+      </div>
 
       {error && (
         <div className="text-sm text-burgundy border-l-2 border-burgundy pl-3">

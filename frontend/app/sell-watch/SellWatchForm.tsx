@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 
+import { FileUploader } from "@/components/shared/FileUploader";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
 import {
@@ -42,7 +43,7 @@ const INITIAL: FormState = {
   condition: "excellent",
   box_papers: false,
   description: "",
-  image_urls: [""],
+  image_urls: [],
 };
 
 const CONDITION_LABELS: Record<WatchCondition, string> = {
@@ -67,16 +68,8 @@ export function SellWatchForm() {
     setData((d) => ({ ...d, brand, model: "" }));
   }
 
-  function updateImage(idx: number, url: string) {
-    setData((d) => {
-      const next = [...d.image_urls];
-      next[idx] = url;
-      return { ...d, image_urls: next };
-    });
-  }
-
-  function addImage() {
-    setData((d) => ({ ...d, image_urls: [...d.image_urls, ""] }));
+  function pushImage(url: string) {
+    setData((d) => ({ ...d, image_urls: [...d.image_urls, url] }));
   }
 
   function removeImage(idx: number) {
@@ -292,43 +285,60 @@ export function SellWatchForm() {
 
         <div>
           <span className="eyebrow block mb-3">Görseller</span>
-          <p className="text-xs text-charcoal-300 mb-4">
-            URL yapıştırın. İlk URL kapak görseli olur.
+          <p className="text-xs text-charcoal-300 mb-4 leading-relaxed">
+            Birden fazla fotoğraf seçebilirsiniz. İlk yüklenen kapak görseli
+            olur. Telefonunuzdan çekip doğrudan ekleyebilirsiniz.
           </p>
-          <div className="space-y-3">
-            {data.image_urls.map((url, idx) => (
-              <div key={idx} className="flex items-center gap-3">
-                <input
-                  type="url"
-                  value={url}
-                  onChange={(e) => updateImage(idx, e.target.value)}
-                  placeholder="https://..."
-                  className="flex-1 border-b border-line py-2 text-sm bg-transparent focus:outline-none focus:border-brass transition-colors"
-                />
-                {idx === 0 ? (
-                  <span className="text-[10px] tracking-widest uppercase text-brass">
-                    Kapak
-                  </span>
-                ) : (
+
+          {/* Yüklü görseller — thumbnail grid */}
+          {data.image_urls.length > 0 && (
+            <div className="grid grid-cols-3 sm:grid-cols-4 gap-3 mb-4">
+              {data.image_urls.map((url, idx) => (
+                <div
+                  key={url + idx}
+                  className="relative aspect-square border border-line bg-ivory-50 overflow-hidden group"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={url}
+                    alt={`Görsel ${idx + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  {idx === 0 && (
+                    <span className="absolute top-1.5 left-1.5 text-[9px] tracking-widest uppercase bg-charcoal text-ivory px-1.5 py-0.5">
+                      Kapak
+                    </span>
+                  )}
                   <button
                     type="button"
                     onClick={() => removeImage(idx)}
-                    className="text-charcoal-300 hover:text-burgundy text-xs tracking-widest uppercase"
+                    className="absolute top-1.5 right-1.5 w-6 h-6 flex items-center justify-center bg-charcoal/80 text-ivory text-xs hover:bg-burgundy transition-colors opacity-0 group-hover:opacity-100"
+                    aria-label="Görseli kaldır"
                   >
-                    Kaldır
+                    ×
                   </button>
-                )}
-              </div>
-            ))}
-          </div>
+                </div>
+              ))}
+            </div>
+          )}
+
           {data.image_urls.length < 20 && (
-            <button
-              type="button"
-              onClick={addImage}
-              className="mt-4 text-xs tracking-widest uppercase text-charcoal-500 hover:text-brass border-b border-current pb-0.5"
-            >
-              + Görsel ekle
-            </button>
+            <FileUploader
+              accept="image/jpeg,image/png,image/webp,image/heic,image/heif"
+              multiple
+              capture="environment"
+              label={
+                data.image_urls.length === 0
+                  ? "+ İlk Fotoğrafı Ekle"
+                  : "+ Yeni Fotoğraf Ekle"
+              }
+              onUploaded={pushImage}
+            />
+          )}
+          {data.image_urls.length >= 20 && (
+            <p className="text-xs text-charcoal-300 mt-2">
+              Maksimum 20 görsel limitine ulaştınız.
+            </p>
           )}
         </div>
       </section>
