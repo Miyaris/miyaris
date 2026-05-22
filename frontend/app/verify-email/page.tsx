@@ -116,7 +116,7 @@ function ResultCard({
         <div className="mt-10">
           <Link
             href={cta.href}
-            className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] bg-charcoal text-cream hover:bg-charcoal/90"
+            className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] bg-charcoal text-ivory hover:bg-charcoal-700 transition-colors"
           >
             {cta.label}
           </Link>

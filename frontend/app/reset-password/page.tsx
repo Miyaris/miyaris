@@ -28,7 +28,7 @@ export default function ResetPasswordPage({
         <div className="mt-10">
           <Link
             href="/forgot-password"
-            className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] bg-charcoal text-cream hover:bg-charcoal/90"
+            className="inline-block px-8 py-3 text-xs uppercase tracking-[0.2em] bg-charcoal text-ivory hover:bg-charcoal-700 transition-colors"
           >
             Yeni Bağlantı Talep Et
           </Link>

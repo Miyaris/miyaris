@@ -76,7 +76,7 @@ const STAGES: Stage[] = [
         body: "Günlük saniye sapması, vuruş hatası ve mekanizma salınım değerleri 6 pozisyonda kayıt altına alınır.",
       },
       {
-        title: "Su geçirmezlik (talep üzerine)",
+        title: "Su geçirmezlik",
         body: "Üretici sertifikasında dalış/su özelliği belirtilen modeller için kuru basınç testi yapılır.",
       },
       {
@@ -198,7 +198,7 @@ export default function AuthenticationPage() {
       </section>
 
       {/* Bağımsızlık */}
-      <section className="bg-cream/40 border-y border-line">
+      <section className="bg-ivory-50 border-y border-line">
         <Container className="py-24">
           <div className="max-w-2xl mb-12">
             <span className="eyebrow">Bağımsızlık</span>
@@ -233,13 +233,13 @@ export default function AuthenticationPage() {
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
             <Link
               href="/sell-watch"
-              className="inline-block px-10 py-4 text-xs uppercase tracking-[0.2em] bg-charcoal text-cream hover:bg-charcoal/90"
+              className="inline-block px-10 py-4 text-xs uppercase tracking-[0.2em] bg-charcoal text-ivory hover:bg-charcoal-700 transition-colors"
             >
               Saatinizi Satın
             </Link>
             <Link
               href="/how-it-works"
-              className="inline-block px-10 py-4 text-xs uppercase tracking-[0.2em] border border-charcoal text-charcoal hover:bg-charcoal hover:text-cream transition-colors"
+              className="inline-block px-10 py-4 text-xs uppercase tracking-[0.2em] border border-charcoal text-charcoal hover:bg-charcoal hover:text-ivory transition-colors"
             >
               Tüm Akışı Gör
             </Link>
