@@ -44,6 +44,15 @@ export const metadata: Metadata = {
   alternates: {
     canonical: "https://miyaris.com",
   },
+  // Favicon — app/icon.svg ve app/apple-icon.svg dosyaları zaten Next.js
+  // konvansiyonu gereği otomatik picked-up. Bunu explicit yazmak hem cross-
+  // browser uyumluluğunu artırır hem de production'da `<link rel="icon">`
+  // tag'inin garantili çıkmasını sağlar (bazı build pipeline'larda dosya-
+  // tabanlı keşif sessizce atlanabiliyor).
+  icons: {
+    icon: [{ url: "/icon.svg", type: "image/svg+xml" }],
+    apple: [{ url: "/apple-icon.svg", type: "image/svg+xml" }],
+  },
   openGraph: {
     type: "website",
     locale: "tr_TR",
