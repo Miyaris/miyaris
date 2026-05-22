@@ -38,7 +38,12 @@ export function RegisterForm() {
         setError(data.detail ?? "Kayıt başarısız");
         return;
       }
-      router.push("/auctions");
+      // Yeni kullanıcı doğrudan ana sayfaya yönlendirilir — site vitrini
+      // (öne çıkan saatler + güven sütunları) lüks alışveriş hissiyatını
+      // sıfırdan koruyor; bonus olarak henüz e-postasını doğrulamamış
+      // kullanıcı login akışına geri girmek zorunda kalmasın diye giriş
+      // ekranı yerine ana sayfa.
+      router.push("/");
       router.refresh();
     } catch {
       setError("Bağlantı hatası");
