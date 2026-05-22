@@ -19,12 +19,57 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://miyaris.com"),
   title: {
-    default: "Miyaris — Lüks Saat Müzayede & Hemen Al Platformu",
-    template: "%s — Miyaris",
+    default: "Miyaris | Lüks Saat Pazaryeri & Bağımsız Ekspertiz",
+    template: "%s | Miyaris",
   },
   description:
-    "Türkiye'nin sertifikalı lüks saat pazarı. Haftalık müzayede veya Hemen Al, fiziksel orijinallik kontrolü, sigortalı kasa, güvenli emanet hesabı.",
+    "Türkiye'nin en seçkin dijital lüks saat pazarı. Güvenilir ekspertiz, sertifikalı saatler ve şeffaf satıcı komisyonları ile güvenli alışverişin adresi miyaris.com.",
+  keywords: [
+    "lüks saat",
+    "saat müzayedesi",
+    "sertifikalı saat",
+    "saat ekspertizi",
+    "ikinci el lüks saat",
+    "Rolex",
+    "Patek Philippe",
+    "Audemars Piguet",
+    "Türkiye lüks saat pazarı",
+    "Miyaris",
+  ],
+  authors: [{ name: "Miyaris" }],
+  creator: "Miyaris",
+  publisher: "Miyaris",
+  alternates: {
+    canonical: "https://miyaris.com",
+  },
+  openGraph: {
+    type: "website",
+    locale: "tr_TR",
+    url: "https://miyaris.com",
+    siteName: "Miyaris",
+    title: "Miyaris | Lüks Saat Pazaryeri & Bağımsız Ekspertiz",
+    description:
+      "Türkiye'nin en seçkin dijital lüks saat pazarı. Güvenilir ekspertiz, sertifikalı saatler ve şeffaf satıcı komisyonları ile güvenli alışverişin adresi miyaris.com.",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Miyaris | Lüks Saat Pazaryeri & Bağımsız Ekspertiz",
+    description:
+      "Türkiye'nin en seçkin dijital lüks saat pazarı. Güvenilir ekspertiz, sertifikalı saatler ve şeffaf satıcı komisyonları ile güvenli alışverişin adresi miyaris.com.",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+      "max-video-preview": -1,
+    },
+  },
 };
 
 export default async function RootLayout({
