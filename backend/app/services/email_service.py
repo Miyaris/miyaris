@@ -155,9 +155,16 @@ _BASE_WRAPPER = """\
         <td align="center">
           <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background-color:#FFFFFF;border-radius:4px;overflow:hidden;">
             <tr>
-              <td align="center" style="padding:40px 32px 24px 32px;border-bottom:1px solid #ECEAE3;">
-                <div style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;letter-spacing:8px;color:#1F1F23;font-weight:500;">MIYARIS</div>
-                <div style="margin-top:6px;font-size:11px;letter-spacing:3px;color:#B8A179;text-transform:uppercase;">Lüks Saat Pazarı</div>
+              <td align="center" style="padding:40px 32px 28px 32px;border-bottom:1px solid #ECEAE3;">
+                <!-- Miyaris M mark — kömür arka plan + beyaz serif M.
+                     Tüm e-posta istemcilerinde (Gmail, Outlook, Apple Mail)
+                     güvenilir render etmesi için harici görsele bağlı değil;
+                     saf HTML table + inline CSS. Site favicon'uyla aynı. -->
+                <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;">
+                  <tr>
+                    <td width="64" height="64" align="center" valign="middle" bgcolor="#1A1A1A" style="background-color:#1A1A1A;border-radius:12px;font-family:'Playfair Display','Times New Roman',Georgia,serif;font-size:44px;font-weight:500;color:#FFFFFF;line-height:64px;text-align:center;">M</td>
+                  </tr>
+                </table>
               </td>
             </tr>
             <tr>
