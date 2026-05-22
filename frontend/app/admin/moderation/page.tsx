@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { AIStatusIndicator } from "@/components/account/AIStatusIndicator";
-import { Container } from "@/components/shared/Container";
 import { backendFetch } from "@/lib/api";
 import type { AdminWatchListItem } from "@/lib/types";
 
@@ -31,7 +30,7 @@ export default async function ModerationQueuePage() {
   const watches = await getPending();
 
   return (
-    <Container className="py-12">
+    <div>
       <header className="mb-10 border-b border-line pb-6">
         <span className="eyebrow text-brass-dark">Yönetim</span>
         <div className="flex items-baseline justify-between mt-3">
@@ -121,6 +120,6 @@ export default async function ModerationQueuePage() {
           </table>
         </div>
       )}
-    </Container>
+    </div>
   );
 }

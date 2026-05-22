@@ -1,7 +1,6 @@
 import Link from "next/link";
 
 import { EscrowStatusBadge } from "@/components/account/EscrowStatusBadge";
-import { Container } from "@/components/shared/Container";
 import { backendFetch } from "@/lib/api";
 import { formatTRY } from "@/lib/format";
 import type { EscrowListItem } from "@/lib/types";
@@ -24,7 +23,7 @@ export default async function AdminEscrowPage() {
   const items = await getActiveEscrow();
 
   return (
-    <Container className="py-12">
+    <div>
       <header className="mb-10 border-b border-line pb-6">
         <span className="eyebrow text-brass-dark">Yönetim</span>
         <div className="flex items-baseline justify-between mt-3">
@@ -108,6 +107,6 @@ export default async function AdminEscrowPage() {
           </table>
         </div>
       )}
-    </Container>
+    </div>
   );
 }

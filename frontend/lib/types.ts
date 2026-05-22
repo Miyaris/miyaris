@@ -47,6 +47,26 @@ export interface UserPublic {
   created_at: string;
 }
 
+// Admin panelindeki kullanıcılar tablosu için kompakt DTO — backend
+// `AdminUserListItem` ile birebir.
+export interface AdminUserListItem {
+  id: string;
+  full_name: string;
+  email: string;
+  role: UserRole;
+  is_verified: boolean;
+  is_active: boolean;
+  kyc_verified: boolean;
+  created_at: string;
+}
+
+export interface AdminUserListResponse {
+  items: AdminUserListItem[];
+  total: number;
+  limit: number;
+  offset: number;
+}
+
 export interface WatchImage {
   id: string;
   url: string;

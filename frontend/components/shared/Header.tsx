@@ -49,8 +49,16 @@ export function Header({ user }: { user: UserPublic | null }) {
                     href="/admin/escrow"
                     className="text-xs tracking-widest uppercase text-brass-dark hover:text-brass border-b border-brass/30 pb-0.5"
                   >
-                    Escrow
+                    Güvenli Kasa
                   </Link>
+                  {user.role === "admin" && (
+                    <Link
+                      href="/admin/users"
+                      className="text-xs tracking-widest uppercase text-brass-dark hover:text-brass border-b border-brass/30 pb-0.5"
+                    >
+                      Kullanıcılar
+                    </Link>
+                  )}
                 </div>
               )}
               <Link

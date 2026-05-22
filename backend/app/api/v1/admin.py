@@ -5,6 +5,7 @@ Erişim: yalnızca rol = ADMIN veya EXPERT olan kullanıcılar (router-level).
 import uuid
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -13,6 +14,8 @@ from app.models.user import User, UserRole
 from app.models.escrow import EscrowStatus, EscrowTransaction
 from app.schemas.admin import (
     AdminSellerInfo,
+    AdminUserListItem,
+    AdminUserListResponse,
     AdminWatchDetail,
     AdminWatchListItem,
     CertificateCreate,
@@ -263,3 +266,45 @@ async def refund(escrow_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     await escrow_service.refund(db, escrow_id)
     escrow, buyer, seller = await escrow_service.get_admin(db, escrow_id)
     return _escrow_detail(escrow, buyer, seller)
+
+
+# ----- Kullanıcı yönetimi (ADMIN only — uzmanlar göremez) --------------------
+# Router-level guard ADMIN+EXPERT'i geçiriyor; bu endpoint'in kendi guard'ı
+# `require_role(UserRole.ADMIN)` ile kapsamı daraltıyor. EXPERT bu sayfaya
+# 403 alır.
+
+
+@router.get(
+    "/users",
+    response_model=AdminUserListResponse,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def list_users(
+    page: PaginationParams = Depends(pagination_dep),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tüm kullanıcıları en yeni → eski sırasıyla sayfalı dön.
+
+    Front-end tablosu için kompakt veri seti: id, isim, e-posta, rol,
+    doğrulama/aktif/KYC durumları ve kayıt tarihi.
+
+    `total` toplam kullanıcı sayısıdır (filtre yok); sayfalama UI'sini
+    bunun üzerinden çiziyoruz.
+    """
+    total_result = await db.execute(select(func.count()).select_from(User))
+    total = int(total_result.scalar_one())
+
+    result = await db.execute(
+        select(User)
+        .order_by(User.created_at.desc())
+        .limit(page.limit)
+        .offset(page.offset)
+    )
+    users = result.scalars().all()
+
+    return AdminUserListResponse(
+        items=[AdminUserListItem.model_validate(u) for u in users],
+        total=total,
+        limit=page.limit,
+        offset=page.offset,
+    )

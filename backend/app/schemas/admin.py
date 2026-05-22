@@ -5,9 +5,10 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, HttpUrl
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
 from app.models.certificate import AuthenticityVerdict
+from app.models.user import UserRole
 from app.models.watch import AIProcessingStatus, WatchCondition, WatchStatus
 from app.schemas.watch import AIValuationOut, WatchImageOut
 
@@ -95,3 +96,30 @@ class RejectRequest(BaseModel):
     """Sertifikasız doğrudan red — örn. saat fiziksel gelmemiş, duplicate ilan."""
 
     reason: str = Field(min_length=10, max_length=1000)
+
+
+# ----- Kullanıcı yönetimi -----------------------------------------------------
+
+
+class AdminUserListItem(BaseModel):
+    """Admin panelindeki kullanıcı tablosu için kompakt DTO."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    full_name: str
+    email: EmailStr
+    role: UserRole
+    is_verified: bool
+    is_active: bool
+    kyc_verified: bool
+    created_at: datetime
+
+
+class AdminUserListResponse(BaseModel):
+    """Sayfalanmış kullanıcı listesi — items + toplam sayım."""
+
+    items: list[AdminUserListItem]
+    total: int
+    limit: int
+    offset: int

@@ -6,7 +6,6 @@ import { DELIVERY_LABELS } from "@/components/account/DeliveryMethodPicker";
 import { EscrowStatusBadge } from "@/components/account/EscrowStatusBadge";
 import { EscrowTimeline } from "@/components/account/EscrowTimeline";
 import { PAYMENT_LABELS } from "@/components/account/PaymentMethodPicker";
-import { Container } from "@/components/shared/Container";
 import { ApiError, backendFetch } from "@/lib/api";
 import { formatUSD } from "@/lib/format";
 import type { EscrowDetail } from "@/lib/types";
@@ -40,7 +39,7 @@ export default async function AdminEscrowDetailPage({
   const sellerNet = effectivePaid - parseFloat(escrow.platform_fee);
 
   return (
-    <Container className="py-12">
+    <div>
       <Link
         href="/admin/escrow"
         className="text-xs tracking-widest uppercase text-charcoal-500 hover:text-brass border-b border-current pb-0.5"
@@ -160,6 +159,6 @@ export default async function AdminEscrowDetailPage({
           <StateActions escrowId={escrow.id} status={escrow.status} />
         </div>
       </div>
-    </Container>
+    </div>
   );
 }

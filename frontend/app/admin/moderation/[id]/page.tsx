@@ -4,7 +4,6 @@ import { notFound } from "next/navigation";
 import { AIValuationCard } from "@/components/account/AIValuationCard";
 import { CertificateForm } from "@/app/admin/moderation/[id]/CertificateForm";
 import { RejectForm } from "@/app/admin/moderation/[id]/RejectForm";
-import { Container } from "@/components/shared/Container";
 import { WatchGallery } from "@/components/watches/WatchGallery";
 import { ApiError, backendFetch } from "@/lib/api";
 import type { AdminWatchDetail } from "@/lib/types";
@@ -60,7 +59,7 @@ export default async function ModerationDetailPage({
   };
 
   return (
-    <Container className="py-12">
+    <div>
       <Link
         href="/admin/moderation"
         className="text-xs tracking-widest uppercase text-charcoal-500 hover:text-brass border-b border-current pb-0.5"
@@ -155,7 +154,7 @@ export default async function ModerationDetailPage({
           )}
         </div>
       </div>
-    </Container>
+    </div>
   );
 }
 
