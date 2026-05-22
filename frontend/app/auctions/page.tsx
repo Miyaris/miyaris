@@ -5,6 +5,27 @@ import type { AuctionListItem, AuctionStatus } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
+// Açık metadata — daha önce eksikti, bu yüzden Google bu sayfayı root
+// metadata'sıyla aynı başlık altında indeksledi ve "miyaris.com › auctions"
+// olarak ana sonuç gibi gösterdi. Artık her sayfa kendi başlığı + canonical
+// URL'i ile ayrışıyor; root tek "homepage" sonucu olarak kalır.
+export const metadata = {
+  title: "Açık Artırmalar",
+  description:
+    "Miyaris haftalık küratörlü açık artırmaları — sertifikalı saatler, " +
+    "şeffaf teklif geçmişi ve son saniye teklif koruması ile güvenli müzayede.",
+  alternates: {
+    canonical: "https://miyaris.com/auctions",
+  },
+  openGraph: {
+    title: "Açık Artırmalar | Miyaris",
+    description:
+      "Sertifikalı lüks saat müzayedelerine teklif verin — Miyaris haftalık " +
+      "küratörlü açık artırmaları.",
+    url: "https://miyaris.com/auctions",
+  },
+};
+
 const FILTERS: { value: AuctionStatus | "all"; label: string }[] = [
   { value: "all", label: "Tümü" },
   { value: "live", label: "Canlı" },
