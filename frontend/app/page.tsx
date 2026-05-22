@@ -26,24 +26,27 @@ export default async function HomePage() {
       <section className="border-b border-line">
         <Container className="py-24 md:py-36 grid md:grid-cols-12 gap-12 items-end">
           <div className="md:col-span-7">
-            <span className="eyebrow">Miyaris — Müzayede & Hemen Al</span>
+            <span className="eyebrow">
+              Miyaris — Lüks Saat Pazarı & Özel Müzayede
+            </span>
             <h1 className="font-display text-5xl md:text-7xl leading-[1.05] mt-6">
-              Sertifikalı koleksiyon saatleri,
+              Sertifikalı koleksiyon parçaları.
               <br />
-              <span className="text-brass">şeffaf</span> haftalık müzayede.
+              <span className="text-brass">Güvenilir pazar</span>, şeffaf
+              müzayede.
             </h1>
             <p className="mt-8 text-lg text-charcoal-500 leading-relaxed max-w-xl">
-              Her parça partner mağazalarımızda fiziksel olarak doğrulanır,
-              ödemeniz Miyaris emanet hesabında bekler. Pazartesi—Pazar
-              müzayede veya satıcının belirlediği "Hemen Al" fiyatıyla anında
-              satın alın.
+              Her parça, bağımsız eksperlerimiz tarafından fiziksel olarak
+              doğrulanır. Sertifikalı saatleri doğrudan satın alın, kendi
+              saatinizi güvenle satışa çıkarın veya haftalık özel
+              müzayedelerimizde yerinizi alın.
             </p>
             <div className="mt-12 flex gap-6">
               <Link
                 href="/auctions"
                 className="inline-block bg-charcoal text-ivory px-8 py-4 text-sm tracking-widest uppercase hover:bg-charcoal-700 transition-colors"
               >
-                Müzayedeye Göz At
+                Koleksiyonu Keşfet
               </Link>
               <Link
                 href="/sell-watch"
@@ -56,7 +59,7 @@ export default async function HomePage() {
 
           <div className="md:col-span-5 grid grid-cols-3 gap-4 text-center">
             <Stat number="312" label="Sertifikalı Saat" />
-            <Stat number="48s" label="Ortalama Onay" />
+            <Stat number="48 Saat" label="Ekspertiz Süresi" />
             <Stat number="%100" label="Emanet Garantisi" />
           </div>
         </Container>
