@@ -15,11 +15,24 @@ export function Header({ user }: { user: UserPublic | null }) {
   return (
     <header className="border-b border-line bg-ivory/80 backdrop-blur-sm sticky top-0 z-40">
       <Container className="flex items-center justify-between h-20">
+        {/* Wordmark logo — isim + altın aksan çizgisi + tagline.
+            Lüks butik kimliği için Playfair Display serif + Cartier/Bulgari
+            tarzı klasik kompozisyon. Tek satırdan iki satırlı brand mark'a
+            yükseltildi. */}
         <Link
           href="/"
-          className="font-display text-2xl tracking-tight text-charcoal hover:text-brass transition-colors"
+          className="group inline-flex flex-col items-start leading-none"
+          aria-label="Miyaris ana sayfa"
         >
-          Miyaris
+          <span className="font-display text-[1.7rem] tracking-tight text-charcoal group-hover:text-brass transition-colors">
+            Miyaris
+          </span>
+          <span className="flex items-center gap-2 mt-1.5">
+            <span className="h-px w-4 bg-brass" aria-hidden="true" />
+            <span className="text-[9px] tracking-[0.32em] uppercase text-brass-dark font-medium whitespace-nowrap">
+              Lüks Saat Pazarı
+            </span>
+          </span>
         </Link>
 
         <nav className="hidden md:flex items-center gap-10">
