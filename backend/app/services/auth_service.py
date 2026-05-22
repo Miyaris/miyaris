@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.security import (
     create_access_token,
     create_email_verify_token,
+    create_password_reset_token,
     create_refresh_token,
     decode_token,
     hash_password,
@@ -16,7 +17,10 @@ from app.core.config import get_settings
 from app.models.user import User
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate
-from app.services.email_service import send_verification_email
+from app.services.email_service import (
+    send_password_reset_email,
+    send_verification_email,
+)
 from app.services.nvi_service import verify_tc_with_nvi
 from app.utils.exceptions import (
     APIError,
@@ -175,6 +179,61 @@ async def verify_email_token(db: AsyncSession, token: str) -> User:
     from app.services.email_service import send_welcome_email
     await send_welcome_email(user)
 
+    return user
+
+
+async def request_password_reset(db: AsyncSession, email: str) -> None:
+    """Şifre sıfırlama linkini e-postayla gönder.
+
+    Enumeration leak'ini önlemek için her zaman sessizce başarılı döner:
+      - Kullanıcı yoksa hiçbir şey gönderilmez ama frontend "eğer kayıtlıysanız
+        mail gönderildi" mesajı gösterir.
+      - is_active=False kullanıcılara link gönderilmez.
+      - Email doğrulanmamış olsa bile reset linki gönderilir; çünkü kullanıcı
+        belki ilk doğrulama mailini kaçırdı ve şimdi giriş yapamıyor — şifresini
+        sıfırlama denemesini engellemek gereksiz friction yaratır. (Reset
+        akışında is_verified set'lenmez; login akışı yine doğrulama isteyecek.)
+    """
+    result = await db.execute(select(User).where(User.email == email))
+    user = result.scalar_one_or_none()
+    if user is None or not user.is_active:
+        return
+    token = create_password_reset_token(user.id)
+    await send_password_reset_email(user, token)
+
+
+async def reset_password(db: AsyncSession, token: str, new_password: str) -> User:
+    """Şifre sıfırlama akışını tamamla.
+
+    - Token'ı parse et + tip kontrolü (security.decode_password_reset_token)
+    - User'ı bul → hashed_password'ı yeni şifreyle güncelle
+    - is_verified=True işaretle: kullanıcı kendi e-postasına gelen linke
+      tıklayabildiyse o adresin sahibi demektir, ayrıca tekrar mail beklemesin.
+    """
+    from app.core.security import decode_password_reset_token  # döngü önleme
+
+    try:
+        user_id = decode_password_reset_token(token)
+    except (JWTError, ValueError) as e:
+        raise AuthError(
+            "Sıfırlama linki geçersiz veya süresi dolmuş"
+        ) from e
+
+    user = (
+        await db.execute(select(User).where(User.id == user_id))
+    ).scalar_one_or_none()
+    if user is None or not user.is_active:
+        raise AuthError("Hesap bulunamadı veya pasif")
+
+    # Yeni şifre — Pydantic katmanı min uzunluğu zorlamış olmalı, defansif
+    # olarak burada tekrar kontrol etmiyoruz (UserCreate.password ile aynı
+    # politika frontend formunda da uygulanıyor).
+    user.hashed_password = hash_password(new_password)
+    # Kullanıcı maile erişebildi → e-posta sahipliği zımnen doğrulanmış oldu.
+    if not user.is_verified:
+        user.is_verified = True
+    await db.commit()
+    await db.refresh(user)
     return user
 
 

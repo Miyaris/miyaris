@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 
@@ -129,6 +130,15 @@ export function LoginForm({ next }: { next: string }) {
       <Button type="submit" size="lg" disabled={pending} className="w-full">
         {pending ? "Giriş yapılıyor..." : "Giriş Yap"}
       </Button>
+
+      <div className="text-center">
+        <Link
+          href="/forgot-password"
+          className="text-xs uppercase tracking-widest text-charcoal-500 hover:text-brass border-b border-current pb-0.5"
+        >
+          Şifremi Unuttum
+        </Link>
+      </div>
     </form>
   );
 }

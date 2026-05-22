@@ -87,6 +87,33 @@ async def send_verification_email(user: User, token: str) -> None:
     )
 
 
+async def send_password_reset_email(user: User, token: str) -> None:
+    """Şifre sıfırlama linkini gönder.
+
+    Token default 1 saat geçerli. Link kullanıcının frontend'ine yönlenir:
+    `${FRONTEND_URL}/reset-password?token=...` — formda yeni şifre girilir,
+    frontend POST /api/auth/reset-password çağırır.
+    """
+    settings = get_settings()
+    reset_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/reset-password?token={token}"
+    )
+    display_name = (user.first_name or "").strip() or user.full_name or "Üyemiz"
+
+    html = _password_reset_html(display_name=display_name, reset_url=reset_url)
+    text = _password_reset_text(display_name=display_name, reset_url=reset_url)
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [user.email],
+            "subject": "Miyaris - Şifre Sıfırlama Talebi",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
 async def send_welcome_email(user: User) -> None:
     """Doğrulama bittikten sonra: lüks tonlu karşılama maili."""
     settings = get_settings()
@@ -180,6 +207,44 @@ def _verification_text(*, display_name: str, verify_url: str) -> str:
         "Miyaris'e hoş geldiniz. Hesabınızı etkinleştirmek için e-posta adresinizi "
         "doğrulamanız gerekiyor.\n\n"
         f"Doğrulama linki (24 saat geçerli):\n{verify_url}\n\n"
+        "— Miyaris"
+    )
+
+
+def _password_reset_html(*, display_name: str, reset_url: str) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Şifre Sıfırlama</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 24px 0;line-height:1.3;">Merhaba {display_name},</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 16px 0;">
+  Miyaris hesabınız için bir şifre sıfırlama talebi aldık. Aşağıdaki düğmeye tıklayarak yeni şifrenizi belirleyebilirsiniz.
+</p>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 32px 0;">
+  Güvenliğiniz için bu link <strong style="color:#1F1F23;">1 saat</strong> boyunca geçerlidir. Süresi dolarsa giriş sayfasındaki "Şifremi Unuttum" bağlantısından yeni bir talep oluşturabilirsiniz.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 32px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{reset_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Yeni Şifre Belirle</a>
+    </td>
+  </tr>
+</table>
+<p style="font-size:13px;line-height:1.7;color:#6B6B70;margin:32px 0 16px 0;border-top:1px solid #ECEAE3;padding-top:24px;">
+  Bu talebi siz yapmadıysanız bu e-postayı görmezden gelebilirsiniz. Mevcut şifreniz değişmeden kalır ve hiçbir aksiyon gerekmez.
+</p>
+<p style="font-size:12px;line-height:1.7;color:#6B6B70;margin:0;">
+  Düğme çalışmıyorsa aşağıdaki bağlantıyı tarayıcınıza yapıştırın:<br/>
+  <a href="{reset_url}" style="color:#B8A179;word-break:break-all;">{reset_url}</a>
+</p>"""
+    return _BASE_WRAPPER.format(title="Şifre Sıfırlama", body=body)
+
+
+def _password_reset_text(*, display_name: str, reset_url: str) -> str:
+    return (
+        f"Merhaba {display_name},\n\n"
+        "Miyaris hesabınız için bir şifre sıfırlama talebi aldık.\n"
+        "Aşağıdaki linki kullanarak yeni şifrenizi belirleyebilirsiniz.\n\n"
+        f"Sıfırlama linki (1 saat geçerli):\n{reset_url}\n\n"
+        "Bu talebi siz yapmadıysanız bu mesajı görmezden gelebilirsiniz.\n\n"
         "— Miyaris"
     )
 

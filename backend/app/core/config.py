@@ -85,6 +85,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     # Doğrulama token'ı geçerlilik süresi (saat). 24 saat default.
     EMAIL_VERIFY_EXPIRE_HOURS: int = 24
+    # Şifre sıfırlama token'ı geçerlilik süresi (saat). 1 saat default —
+    # hassas operasyon olduğu için kasıtlı olarak kısa.
+    PASSWORD_RESET_EXPIRE_HOURS: int = 1
 
     # ---- Seed admin'ler ----
     # Virgülle ayrılmış e-posta listesi. Container her açıldığında, bu

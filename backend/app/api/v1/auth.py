@@ -6,10 +6,14 @@ from app.core.dependencies import get_current_user
 from app.models.user import User
 from app.schemas.auth import (
     EmailVerifyResponse,
+    ForgotPasswordRequest,
+    ForgotPasswordResponse,
     LoginRequest,
     RefreshRequest,
     ResendVerificationRequest,
     ResendVerificationResponse,
+    ResetPasswordRequest,
+    ResetPasswordResponse,
     TokenResponse,
 )
 from app.schemas.user import UserCreate, UserPublic
@@ -61,6 +65,33 @@ async def resend_verification(
     """
     await auth_service.resend_verification_email(db, payload.email)
     return ResendVerificationResponse()
+
+
+@router.post("/forgot-password", response_model=ForgotPasswordResponse)
+async def forgot_password(
+    payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    """Şifre sıfırlama linki gönder.
+
+    Enumeration leak'ini önlemek için her zaman aynı 200 cevabı döner —
+    kayıtlı olmayan ya da pasif e-postalar sessizce no-op olur.
+    """
+    await auth_service.request_password_reset(db, payload.email)
+    return ForgotPasswordResponse()
+
+
+@router.post("/reset-password", response_model=ResetPasswordResponse)
+async def reset_password(
+    payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+):
+    """Sıfırlama mailindeki token + yeni şifre → şifre güncelleme.
+
+    Token geçersiz veya süresi dolmuşsa 401 (`AuthError`) döner. Başarılı
+    olursa kullanıcı `is_verified=True` işaretlenir ve yeni şifreyle login
+    yapabilir.
+    """
+    user = await auth_service.reset_password(db, payload.token, payload.new_password)
+    return ResetPasswordResponse(email=user.email)
 
 
 @router.post("/login", response_model=TokenResponse)
