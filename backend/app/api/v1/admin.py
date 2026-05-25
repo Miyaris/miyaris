@@ -14,6 +14,7 @@ from app.models.user import User, UserRole
 from app.models.escrow import EscrowStatus, EscrowTransaction
 from app.schemas.admin import (
     AdminAuctionListItem,
+    AdminKycSetRequest,
     AdminSellerInfo,
     AdminUserListItem,
     AdminUserListResponse,
@@ -26,6 +27,7 @@ from app.schemas.admin import (
 from app.schemas.escrow import EscrowDetail, EscrowListItem
 from app.schemas.watch import AIValuationOut
 from app.services import auction_service, escrow_service, moderation_service
+from app.utils.exceptions import NotFoundError
 from app.utils.pagination import PaginationParams, pagination_dep
 
 router = APIRouter(
@@ -341,6 +343,33 @@ async def list_users(
         limit=page.limit,
         offset=page.offset,
     )
+
+
+@router.post(
+    "/users/{user_id}/set-kyc",
+    response_model=AdminUserListItem,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def set_user_kyc(
+    user_id: uuid.UUID,
+    payload: AdminKycSetRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin override — kullanıcının KYC bayrağını set'le.
+
+    NVI_VERIFICATION_ENABLED=false iken kayıt olmuş kullanıcılar
+    `kyc_verified=False` ile oluşur ve $3000+ teklif veremezler. Bu
+    endpoint o kullanıcıları manuel onaylamak için kullanılır. Tersine
+    çekmek için False geçilebilir.
+    """
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise NotFoundError("Kullanıcı bulunamadı")
+    user.kyc_verified = payload.kyc_verified
+    await db.commit()
+    await db.refresh(user)
+    return AdminUserListItem.model_validate(user)
 
 
 # ----- Müzayede yönetimi (ADMIN + EXPERT) -----------------------------------

@@ -3,6 +3,7 @@ import Link from "next/link";
 import { backendFetch } from "@/lib/api";
 import type { AdminUserListResponse } from "@/lib/types";
 
+import { UserActions } from "./UserActions";
 import { UserStatusBadge } from "./UserStatusBadge";
 
 export const dynamic = "force-dynamic";
@@ -108,8 +109,9 @@ export default async function AdminUsersPage({
                   <th className="eyebrow py-4 px-4 font-normal hidden lg:table-cell">
                     Kayıt
                   </th>
+                  <th className="eyebrow py-4 px-4 font-normal">Durum</th>
                   <th className="eyebrow py-4 px-4 font-normal text-right">
-                    Durum
+                    Aksiyon
                   </th>
                 </tr>
               </thead>
@@ -136,11 +138,15 @@ export default async function AdminUsersPage({
                     <td className="py-4 px-4 text-sm tabular-nums text-charcoal-500 hidden lg:table-cell">
                       {formatDate(u.created_at)}
                     </td>
-                    <td className="py-4 px-4 text-right">
-                      <div className="inline-flex flex-wrap gap-1.5 justify-end">
+                    <td className="py-4 px-4">
+                      <div className="inline-flex flex-wrap gap-1.5">
                         <UserStatusBadge
                           tone={u.is_verified ? "verified" : "pending"}
                           label={u.is_verified ? "Onaylı" : "Onaysız"}
+                        />
+                        <UserStatusBadge
+                          tone={u.kyc_verified ? "verified" : "muted"}
+                          label={u.kyc_verified ? "KYC" : "KYC yok"}
                         />
                         {!u.is_active && (
                           <UserStatusBadge tone="muted" label="Pasif" />
@@ -149,6 +155,12 @@ export default async function AdminUsersPage({
                           <UserStatusBadge tone="brass" label="Admin" />
                         )}
                       </div>
+                    </td>
+                    <td className="py-4 px-4 text-right">
+                      <UserActions
+                        userId={u.id}
+                        kycVerified={u.kyc_verified}
+                      />
                     </td>
                   </tr>
                 ))}

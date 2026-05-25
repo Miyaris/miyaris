@@ -126,6 +126,17 @@ class AdminUserListResponse(BaseModel):
     offset: int
 
 
+class AdminKycSetRequest(BaseModel):
+    """Admin override: kullanıcının KYC bayrağını manuel set'le.
+
+    NVI_VERIFICATION_ENABLED=false iken kayıt olmuş kullanıcıları (kyc_verified=False)
+    $3000+ teklif verebilmesi için elle onaylamak amacıyla kullanılır.
+    Tersi de mümkün — KYC'yi geri çekmek için False geçilebilir.
+    """
+
+    kyc_verified: bool
+
+
 # ----- Müzayede yönetimi ------------------------------------------------------
 
 
