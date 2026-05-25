@@ -43,7 +43,11 @@ RUN pip install --upgrade pip setuptools wheel \
         "email-validator>=2.2.0" \
         "python-slugify>=8.0.4" \
         "httpx>=0.27.0" \
-        "resend>=0.7.0"
+        "resend>=0.7.0" \
+        "slowapi>=0.1.9,<1.0.0"
+# NOT (ileride refactor): Bu hard-coded liste pyproject.toml ile drift eder.
+# pyproject.toml'a paket eklemek tek başına yetmez — Dockerfile da güncellenmeli.
+# Uzun vadede: `pip install .` ile pyproject'i kaynak yap, hard-coded listeyi sil.
 
 # ---------- RUNTIME AŞAMASI: minimal image ----------
 FROM python:3.11-slim AS runtime
