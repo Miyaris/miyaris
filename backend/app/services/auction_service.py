@@ -49,6 +49,26 @@ def compute_next_week_window() -> tuple[datetime, datetime]:
     )
 
 
+def compute_current_week_window() -> tuple[datetime, datetime]:
+    """İçinde bulunduğumuz haftanın Pazartesi 00:00 — Pazar 23:59:59 (UTC).
+
+    Admin'in "geç katılım" akışı için: bir saati bu haftanın müzayedesine
+    ekliyoruz. Pazartesi geçmişte olabilir (örn. bugün Çarşamba) — bu
+    durumda scheduler bir sonraki tick'te status'u LIVE'a çekecek.
+    """
+    now_tr = datetime.now(ISTANBUL_TZ)
+    this_monday_tr = (now_tr - timedelta(days=now_tr.weekday())).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    this_sunday_end_tr = this_monday_tr + timedelta(
+        days=6, hours=23, minutes=59, seconds=59
+    )
+    return (
+        this_monday_tr.astimezone(timezone.utc),
+        this_sunday_end_tr.astimezone(timezone.utc),
+    )
+
+
 async def create_auction(
     db: AsyncSession, user: User, payload: AuctionCreate
 ) -> Auction:
@@ -241,6 +261,97 @@ async def buy_now(
     await db.refresh(auction)
     await db.refresh(escrow)
     return auction, escrow
+
+
+# ============================================================================
+# Admin: müzayede yönetimi (panel ayrı router'da bağlı)
+# ============================================================================
+
+
+async def list_admin_scheduled(
+    db: AsyncSession, limit: int = 50, offset: int = 0
+) -> list[Auction]:
+    """Admin panel için aktif/scheduled/live müzayedeler.
+
+    ENDED/COMPLETED/CANCELLED hariç — bunlar artık eskrow/operasyon akışına
+    ait. SCHEDULED en yakın → LIVE → en uzak sırasıyla.
+    """
+    stmt = (
+        select(Auction)
+        .where(
+            Auction.status.in_(
+                (AuctionStatus.SCHEDULED, AuctionStatus.LIVE)
+            )
+        )
+        .options(
+            selectinload(Auction.watch).selectinload(Watch.images),
+            selectinload(Auction.watch).selectinload(Watch.seller),
+        )
+        .order_by(Auction.starts_at.asc())
+        .limit(limit)
+        .offset(offset)
+    )
+    result = await db.execute(stmt)
+    return list(result.scalars().unique().all())
+
+
+async def admin_move_to_current_week(
+    db: AsyncSession, auction_id: uuid.UUID
+) -> Auction:
+    """Müzayedeyi bu haftanın penceresine çek (geç katılım).
+
+    Yan etki: starts_at geçmişte ise status'u anında LIVE'a çekiyoruz.
+    Aksi durumda scheduler bir sonraki tick'te (max 30 sn) halleder.
+
+    Kısıtlar:
+      - Sadece SCHEDULED veya LIVE auction'lar move edilebilir
+      - ENDED/COMPLETED/CANCELLED bloklanır (geri alınamaz state'ler)
+    """
+    auction = await get_auction(db, auction_id)
+    if auction.status not in (AuctionStatus.SCHEDULED, AuctionStatus.LIVE):
+        raise ConflictError(
+            f"Bu müzayede {auction.status.value} durumunda — taşınamaz"
+        )
+
+    starts_at, ends_at = compute_current_week_window()
+    now = datetime.now(timezone.utc)
+
+    # Güvenlik: bu haftanın bitişi geçmişse (örn. Pazar gecesi 23:59:59'dan
+    # sonra ama Pazartesi'den önceki garip saniyeler) hiç schedule etme
+    if ends_at <= now:
+        raise ConflictError(
+            "Bu haftanın penceresi kapanmış — bir sonraki haftayı kullan"
+        )
+
+    auction.starts_at = starts_at
+    auction.ends_at = ends_at
+    auction.extended_until = None  # önceki extension'ı temizle
+
+    # starts_at geçmişte ise anında LIVE'a çek (scheduler tick'i beklemeden)
+    if starts_at <= now and auction.status == AuctionStatus.SCHEDULED:
+        auction.status = AuctionStatus.LIVE
+
+    await db.commit()
+    await db.refresh(auction)
+    return auction
+
+
+async def admin_cancel(db: AsyncSession, auction_id: uuid.UUID) -> Auction:
+    """Admin override iptal — satıcı sahiplik kontrolü yok, LIVE da iptal
+    edilebilir. ENDED/COMPLETED iptal edilemez (kazanan + eskrow var)."""
+    auction = await get_auction(db, auction_id)
+    if auction.status in (
+        AuctionStatus.ENDED,
+        AuctionStatus.COMPLETED,
+        AuctionStatus.CANCELLED,
+    ):
+        raise ConflictError(
+            f"{auction.status.value} durumundaki müzayede iptal edilemez"
+        )
+    auction.status = AuctionStatus.CANCELLED
+    await db.commit()
+    await db.refresh(auction)
+    return auction
 
 
 async def list_my_participations(

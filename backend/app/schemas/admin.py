@@ -7,6 +7,7 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, EmailStr, Field, HttpUrl
 
+from app.models.auction import AuctionStatus
 from app.models.certificate import AuthenticityVerdict
 from app.models.user import UserRole
 from app.models.watch import AIProcessingStatus, WatchCondition, WatchStatus
@@ -123,3 +124,31 @@ class AdminUserListResponse(BaseModel):
     total: int
     limit: int
     offset: int
+
+
+# ----- Müzayede yönetimi ------------------------------------------------------
+
+
+class AdminAuctionListItem(BaseModel):
+    """Admin paneli için müzayede tablosu satırı.
+
+    Saat + satıcı + zaman penceresi + mevcut fiyat. "Bu Hafta'ya Çek"
+    veya "İptal" aksiyonları için yeterli bilgi.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    watch_id: uuid.UUID
+    brand: str
+    model: str
+    reference_number: str
+    primary_image_url: str | None
+    seller_name: str
+    seller_email: str
+    current_price: Decimal
+    starting_price: Decimal
+    starts_at: datetime
+    ends_at: datetime
+    status: AuctionStatus
+    bid_count: int = 0

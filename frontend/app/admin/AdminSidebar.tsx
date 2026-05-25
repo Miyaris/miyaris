@@ -10,6 +10,7 @@ interface NavItem {
 
 const NAV_ITEMS: NavItem[] = [
   { href: "/admin/moderation", label: "Moderasyon" },
+  { href: "/admin/auctions", label: "Müzayedeler" },
   { href: "/admin/escrow", label: "Güvenli Kasa" },
   { href: "/admin/users", label: "Kullanıcılar" },
 ];

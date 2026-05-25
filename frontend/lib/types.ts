@@ -257,6 +257,25 @@ export interface AdminWatchListItem {
   created_at: string;
 }
 
+export type AdminAuctionStatus = "scheduled" | "live" | "ended" | "completed" | "cancelled";
+
+export interface AdminAuctionListItem {
+  id: string;
+  watch_id: string;
+  brand: string;
+  model: string;
+  reference_number: string;
+  primary_image_url: string | null;
+  seller_name: string;
+  seller_email: string;
+  current_price: string;
+  starting_price: string;
+  starts_at: string;
+  ends_at: string;
+  status: AdminAuctionStatus;
+  bid_count: number;
+}
+
 export interface AdminWatchDetail {
   id: string;
   brand: string;

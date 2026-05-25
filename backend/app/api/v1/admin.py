@@ -13,6 +13,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User, UserRole
 from app.models.escrow import EscrowStatus, EscrowTransaction
 from app.schemas.admin import (
+    AdminAuctionListItem,
     AdminSellerInfo,
     AdminUserListItem,
     AdminUserListResponse,
@@ -24,7 +25,7 @@ from app.schemas.admin import (
 )
 from app.schemas.escrow import EscrowDetail, EscrowListItem
 from app.schemas.watch import AIValuationOut
-from app.services import escrow_service, moderation_service
+from app.services import auction_service, escrow_service, moderation_service
 from app.utils.pagination import PaginationParams, pagination_dep
 
 router = APIRouter(
@@ -340,3 +341,76 @@ async def list_users(
         limit=page.limit,
         offset=page.offset,
     )
+
+
+# ----- Müzayede yönetimi (ADMIN + EXPERT) -----------------------------------
+
+
+def _auction_list_item(auction) -> AdminAuctionListItem:
+    watch = auction.watch
+    primary = next((i.url for i in watch.images if i.is_primary), None) or (
+        watch.images[0].url if watch.images else None
+    )
+    return AdminAuctionListItem(
+        id=auction.id,
+        watch_id=watch.id,
+        brand=watch.brand,
+        model=watch.model,
+        reference_number=watch.reference_number,
+        primary_image_url=primary,
+        seller_name=watch.seller.full_name,
+        seller_email=watch.seller.email,
+        current_price=auction.current_price,
+        starting_price=auction.starting_price,
+        starts_at=auction.starts_at,
+        ends_at=auction.ends_at,
+        status=auction.status,
+        bid_count=len(auction.bids) if auction.bids else 0,
+    )
+
+
+@router.get("/auctions", response_model=list[AdminAuctionListItem])
+async def list_admin_auctions(
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(pagination_dep),
+):
+    """Aktif (scheduled + live) müzayedeler. En yakın başlangıç üstte."""
+    auctions = await auction_service.list_admin_scheduled(
+        db, limit=pagination.limit, offset=pagination.offset
+    )
+    return [_auction_list_item(a) for a in auctions]
+
+
+@router.post(
+    "/auctions/{auction_id}/move-to-current-week",
+    response_model=AdminAuctionListItem,
+)
+async def move_auction_to_current_week(
+    auction_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Geç katılım — müzayedeyi bu haftanın penceresine çek.
+
+    starts_at geçmişte olursa status anında LIVE'a çekilir, kullanıcı
+    UI'de bekleme yaşamaz.
+    """
+    await auction_service.admin_move_to_current_week(db, auction_id)
+    # Liste DTO için tekrar selectinload'lu fetch — bids/seller eager
+    auctions = await auction_service.list_admin_scheduled(db, limit=200, offset=0)
+    target = next((a for a in auctions if a.id == auction_id), None)
+    if target is None:
+        # Müzayede artık scheduled/live değil (eg. eş zamanlı state değişimi)
+        # — yine de güncel detayı dön
+        target = await auction_service.get_auction(db, auction_id)
+    return _auction_list_item(target)
+
+
+@router.post("/auctions/{auction_id}/cancel", response_model=AdminAuctionListItem)
+async def admin_cancel_auction(
+    auction_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin iptal — satıcı sahiplik kontrolü atlanır, LIVE müzayede de
+    iptal edilebilir. ENDED/COMPLETED bloklanır."""
+    auction = await auction_service.admin_cancel(db, auction_id)
+    return _auction_list_item(auction)
