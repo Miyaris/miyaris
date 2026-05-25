@@ -11,6 +11,7 @@ from app.models.escrow import (
     EscrowTransaction,
     PaymentMethod,
 )
+from app.models.refresh_token import RefreshToken
 from app.models.user import User, UserRole
 from app.models.watch import (
     AIProcessingStatus,
@@ -41,4 +42,5 @@ __all__ = [
     "AuthenticityCertificate",
     "AuthenticityVerdict",
     "AIValuation",
+    "RefreshToken",
 ]

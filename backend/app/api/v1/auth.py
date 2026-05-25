@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, Query, status
+from fastapi import APIRouter, Depends, Query, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
@@ -17,13 +17,23 @@ from app.schemas.auth import (
     TokenResponse,
 )
 from app.schemas.user import UserCreate, UserPublic
+from app.core.middleware import limiter
 from app.services import auth_service
+from app.services.refresh_token_service import (
+    issue_token_pair,
+    revoke_refresh_by_jwt,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserPublic, status_code=status.HTTP_201_CREATED)
-async def register(payload: UserCreate, db: AsyncSession = Depends(get_db)):
+@limiter.limit("5/minute")
+async def register(
+    request: Request,
+    payload: UserCreate,
+    db: AsyncSession = Depends(get_db),
+):
     """Yeni kullanıcı oluştur. Default rol: BUYER.
 
     Kayıt başarılı olur olmaz Resend üzerinden 24 saat geçerli, JWT tabanlı
@@ -55,8 +65,11 @@ async def verify_email(
 
 
 @router.post("/resend-verification", response_model=ResendVerificationResponse)
+@limiter.limit("5/minute")
 async def resend_verification(
-    payload: ResendVerificationRequest, db: AsyncSession = Depends(get_db)
+    request: Request,
+    payload: ResendVerificationRequest,
+    db: AsyncSession = Depends(get_db),
 ):
     """Doğrulama linki tekrar gönder.
 
@@ -68,8 +81,11 @@ async def resend_verification(
 
 
 @router.post("/forgot-password", response_model=ForgotPasswordResponse)
+@limiter.limit("5/minute")
 async def forgot_password(
-    payload: ForgotPasswordRequest, db: AsyncSession = Depends(get_db)
+    request: Request,
+    payload: ForgotPasswordRequest,
+    db: AsyncSession = Depends(get_db),
 ):
     """Şifre sıfırlama linki gönder.
 
@@ -81,8 +97,11 @@ async def forgot_password(
 
 
 @router.post("/reset-password", response_model=ResetPasswordResponse)
+@limiter.limit("5/minute")
 async def reset_password(
-    payload: ResetPasswordRequest, db: AsyncSession = Depends(get_db)
+    request: Request,
+    payload: ResetPasswordRequest,
+    db: AsyncSession = Depends(get_db),
 ):
     """Sıfırlama mailindeki token + yeni şifre → şifre güncelleme.
 
@@ -95,16 +114,48 @@ async def reset_password(
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(payload: LoginRequest, db: AsyncSession = Depends(get_db)):
-    """E-posta + şifre ile giriş; access + refresh token döner."""
+@limiter.limit("5/minute")
+async def login(
+    request: Request,
+    payload: LoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """E-posta + şifre ile giriş; access (15dk) + refresh (30g, rotation'lı)
+    token çifti döner. Refresh jti DB'ye persist edilir → /refresh çağrısında
+    eski revoke + yeni issue, reuse algılanırsa tüm session'lar iptal."""
     user = await auth_service.authenticate(db, payload.email, payload.password)
-    return auth_service.issue_tokens(user.id)
+    return await issue_token_pair(db, user.id, request)
 
 
 @router.post("/refresh", response_model=TokenResponse)
-async def refresh(payload: RefreshRequest, db: AsyncSession = Depends(get_db)):
-    """Refresh token ile yeni access token al."""
-    return await auth_service.refresh_access_token(db, payload.refresh_token)
+@limiter.limit("30/minute")
+async def refresh(
+    request: Request,
+    payload: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Refresh token ile yeni access+refresh çifti al (rotation).
+
+    Eski refresh revoke edilir. Eğer aynı refresh ikinci kez kullanılırsa
+    (token reuse), kullanıcının TÜM aktif refresh'leri iptal edilir ve 401
+    + "tekrar giriş yap" mesajı döner. Compromise senaryosuna karşı
+    defense-in-depth."""
+    return await auth_service.refresh_access_token(
+        db, payload.refresh_token, request
+    )
+
+
+@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
+async def logout(
+    payload: RefreshRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Refresh token'ı revoke et. 'Best effort' — JWT geçersiz olsa bile
+    204 döner (client cookie'yi yine de siler). Frontend bu endpoint'i
+    çağırdıktan sonra cookie'leri temizler.
+    """
+    await revoke_refresh_by_jwt(db, payload.refresh_token)
+    return None
 
 
 @router.get("/me", response_model=UserPublic)

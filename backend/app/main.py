@@ -9,6 +9,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.api.v1 import admin, auctions, auth, orders, service, watches
 from app.core.bootstrap import promote_seed_admins
 from app.core.config import get_settings
+from app.core.middleware import SecurityHeadersMiddleware, init_rate_limiter
+from app.core.security import assert_signing_ready
 from app.services.scheduler import scheduler_loop
 from app.websockets import auction_ws
 
@@ -22,6 +24,10 @@ async def lifespan(app: FastAPI):  # noqa: ARG001
     Scheduler'ı varsayılan olarak başlatırız. Multi-replica ortamda yalnızca tek
     instance çalıştırmak için `RUN_SCHEDULER=0` env'i set'lenebilir.
     """
+    # Production hardening — RS256 anahtarları boot anında yoksa
+    # fail-fast. Dev (APP_ENV != production) sessiz geçer.
+    assert_signing_ready()
+
     # Seed admin'leri ADMIN_EMAILS env'inden veritabanına yansıt.
     # Hata fırlatmaz — başarısız olursa log'a yazılır ve uygulama yine
     # ayağa kalkar (mevcut admin'ler hâlâ giriş yapabilir).
@@ -56,21 +62,67 @@ def create_app() -> FastAPI:
         lifespan=lifespan,
     )
 
-    # CORS — MVP geniş açık ("*"). Browser direkt backend'e cookie ile çağrı
-    # atmıyor (Vercel'deki Next.js route handler'ları sunucu tarafında proxy
-    # görevi görüyor; cookie httpOnly ve Next.js host'unda kalıyor). Bu
-    # nedenle `allow_credentials=False` ile `allow_origins=["*"]` kombinasyonu
-    # CORS spec açısından geçerli. Production'da Vercel domain'ini kısıtlamak
-    # için `CORS_ORIGINS` env'ini `["https://miyaris.vercel.app"]` yap ve
-    # `allow_credentials=True`'a geri al.
-    is_wide_open = settings.CORS_ORIGINS == ["*"]
+    # ---- CORS ----
+    # Production'da CORS sıkı kilitli: yalnız apex + www. Browser direkt
+    # backend'e cookie ile çağrı atmıyor (Vercel route handler'ları proxy
+    # görüyor, cookie Next.js host'unda kalıyor) — ama defense-in-depth
+    # için yine de origin listesi minimal tutulur.
+    #
+    # Dev (APP_ENV != production): localhost:3000 ek olarak izinli.
+    # CORS_ORIGINS env'i set'liyse override eder (custom staging origin
+    # için kaçış kapısı).
+    is_prod = settings.APP_ENV == "production"
+    # Prod default'u her zaman miyaris.com — CORS_ORIGINS env'i sadece dev/
+    # staging için override (custom staging origin'i eklemek için "*" YERINE
+    # spesifik origin'lerle, comma-separated). "*" prod'da KESİNLİKLE kabul
+    # edilmez (allow_credentials=True ile imkansız zaten).
+    if is_prod:
+        # Prod env'i CORS_ORIGINS açıkça set'lemişse onu kullan (örn. staging
+        # subdomain), default ise www + apex sabit.
+        if (
+            settings.CORS_ORIGINS
+            and settings.CORS_ORIGINS != ["*"]
+            and settings.CORS_ORIGINS != ["http://localhost:3000"]
+        ):
+            allowed_origins = settings.CORS_ORIGINS
+        else:
+            allowed_origins = [
+                "https://www.miyaris.com",
+                "https://miyaris.com",
+            ]
+    else:
+        # Dev/staging — CORS_ORIGINS env set'liyse onu, değilse localhost.
+        if settings.CORS_ORIGINS and settings.CORS_ORIGINS != ["*"]:
+            allowed_origins = settings.CORS_ORIGINS
+        else:
+            allowed_origins = [
+                "http://localhost:3000",
+                "http://127.0.0.1:3000",
+            ]
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=settings.CORS_ORIGINS,
-        allow_credentials=not is_wide_open,
-        allow_methods=["*"],
-        allow_headers=["*"],
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+        allow_headers=[
+            "Authorization",
+            "Content-Type",
+            "X-CSRF-Token",
+            "X-Service-Key",
+            "X-Requested-With",
+        ],
+        max_age=600,
     )
+
+    # ---- Security Headers ----
+    # HSTS (prod), XCTO, X-Frame-Options, Referrer-Policy, Permissions-Policy,
+    # CSP frame-ancestors. Her response'a otomatik eklenir.
+    app.add_middleware(SecurityHeadersMiddleware)
+
+    # ---- Rate Limiting ----
+    # slowapi in-memory backend. RATE_LIMIT_ENABLED=False ise no-op.
+    # Route'larda @limiter.limit("5/minute") dekoratörleri devrede.
+    init_rate_limiter(app)
 
     # REST — kullanıcı endpoint'leri
     app.include_router(auth.router, prefix="/api/v1")

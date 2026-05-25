@@ -41,31 +41,56 @@ services:
           property: connectionString
       - key: REDIS_URL
         sync: false      # Henüz kullanılmıyor; ileride manuel set'lenebilir
-      # ---- JWT secret (otomatik üretilir; cycle için Render dashboard'dan) ----
+      # ---- JWT — RS256 asimetrik imza (Zero Trust upgrade) ----
+      # Private + Public PEM çiftleri Render dashboard'da MANUEL set'lenir
+      # (sync: false). Üretim için openssl ile oluştur:
+      #   openssl genpkey -algorithm RSA -out priv.pem -pkeyopt rsa_keygen_bits:2048
+      #   openssl rsa -pubout -in priv.pem -out pub.pem
+      # Sonra dosyaların İÇERİĞİNİ tek tek paste'le. Render multiline secret'ı
+      # düzgün saklıyor; literal \n ile gelen değerleri kodda normalize ediyoruz.
+      - key: JWT_PRIVATE_KEY_PEM
+        sync: false
+      - key: JWT_PUBLIC_KEY_PEM
+        sync: false
+      # Legacy HS256 secret — grace period (7 gün) için dual-verify modunda.
+      # Mevcut JWT_SECRET_KEY'i koruyoruz; süre sonunda silinecek.
       - key: JWT_SECRET_KEY
         generateValue: true
+      - key: JWT_LEGACY_HS256_VERIFY
+        value: "true"  # Grace period sonu: false yap, JWT_SECRET_KEY'i sil
       # ---- Servisler arası anahtar (worker ile paylaşılır — aşağıda aynısı) ----
       - key: SERVICE_API_KEY
         generateValue: true
+      # ---- Rate limiting ----
+      - key: RATE_LIMIT_ENABLED
+        value: "true"
       # ---- Uygulama ayarları ----
       - key: APP_NAME
         value: miyaris
+      - key: APP_ENV
+        value: "production"  # Boot fail-fast'leri ve sıkı CORS bunu okur
       - key: DEBUG
         value: "false"
       - key: JWT_ALGORITHM
-        value: HS256
+        value: RS256
+      # 30 dk access token + 30 gün refresh (rotation aktif → güvenli).
+      # Frontend sessiz refresh akışı devreye girince 15 dk'ya çekilebilir;
+      # şimdilik 30 dk → kullanıcı arka arkaya logout görmez.
       - key: ACCESS_TOKEN_EXPIRE_MINUTES
         value: "30"
       - key: REFRESH_TOKEN_EXPIRE_DAYS
-        value: "14"
+        value: "30"
       # ---- NVİ — production'da aktif et ----
       - key: NVI_VERIFICATION_ENABLED
         value: "false"   # Vercel canlıya çıkınca dashboard'dan true yap
       - key: NVI_TIMEOUT_SECONDS
         value: "10"
-      # ---- CORS — Vercel domain'i belli olunca CORS_ORIGINS_RAW olarak set'le ----
+      # ---- CORS — APP_ENV=production iken main.py default'u www+apex miyaris.com
+      # Bu env override edilirse (örn staging subdomain), buraya JSON list
+      # olarak yaz: '["https://staging.miyaris.com"]'. Boş veya default
+      # ["http://localhost:3000"] kalırsa prod fallback devreye girer.
       - key: CORS_ORIGINS
-        value: '["*"]'   # MVP — kısıtlamak için '["https://miyaris.vercel.app"]'
+        sync: false
       # ---- Scheduler — tek instance'ta açık, ölçeklenirken sadece bir tanesi 1 olmalı ----
       - key: RUN_SCHEDULER
         value: "1"

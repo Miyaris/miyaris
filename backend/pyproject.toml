@@ -22,6 +22,10 @@ dependencies = [
     # Resend — transaktif e-posta (doğrulama + welcome maili). Resend Python SDK
     # 0.7.x stable; HTTP API üzerinden tek dependency, requests'i çeker.
     "resend>=0.7.0",
+    # slowapi — rate limiting middleware (login/register brute force
+    # koruması). In-memory storage default; multi-replica'ya geçince
+    # Redis URL ile pluggable.
+    "slowapi>=0.1.9,<1.0.0",
 ]
 
 [project.optional-dependencies]

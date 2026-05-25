@@ -47,10 +47,48 @@ class Settings(BaseSettings):
     def _ensure_asyncpg_driver(cls, v: str) -> str:
         return _normalize_database_url(v)
 
-    JWT_SECRET_KEY: str = Field(min_length=32)
-    JWT_ALGORITHM: str = "HS256"
+    # ---- JWT İmza ----
+    # RS256'ya geçtik. Eski HS256 token'ların grace period boyunca (deploy
+    # gününden itibaren 7 gün) doğrulanmaya devam etmesi için JWT_SECRET_KEY
+    # opsiyonel tutuluyor — yoksa HS256 fallback devre dışı. Grace period
+    # sonrası bu env tamamen silinebilir.
+    #
+    # Production'da RSA anahtarları Render dashboard → Environment → secret
+    # olarak set'lenir (sync:false). PEM tek satıra alınırken `\n`'lar
+    # literal olarak girilebilir; security.py yükleme anında çevirir.
+    JWT_SECRET_KEY: str = ""  # Legacy HS256; boşsa fallback yok
+    JWT_PRIVATE_KEY_PEM: str = ""  # RS256 imza için (prod'da zorunlu)
+    JWT_PUBLIC_KEY_PEM: str = ""  # RS256 doğrulama için (prod'da zorunlu)
+    JWT_ALGORITHM: str = "RS256"
+    # Access token süresi: 30 dk. Frontend'in sessiz refresh akışı devreye
+    # girene kadar (Faz 5) kullanıcıyı 30 dk'dan sık logout yapmamak için
+    # bilinçli olarak 30. RS256 + jti tabanlı refresh ile zaten güçlü
+    # iptal mekanizması var; sızıntı penceresi 30 dk yönetilebilir.
+    # Frontend refresh hazır olunca 15 dk'ya çekilebilir.
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
-    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+    # Refresh süresi: 30 gün. Rotation aktif → her kullanımda yeni jti,
+    # eski revoke, 30 gün absolute upper bound.
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+
+    # ---- HS256 Geriye-Uyum Grace Period ----
+    # Deploy günü RS256'ya geçişten sonra mevcut kullanıcıların eski
+    # HS256 token'larıyla logout edilmesini engelleyen yumuşak geçiş.
+    # True ise: yeni token'lar RS256 ile imzalanır, ama doğrulama
+    # önce RS256 dener — başarısız olursa HS256 fallback ile dener.
+    # Grace period (7 gün) bittikten sonra False'a çek + JWT_SECRET_KEY
+    # env'ini sil.
+    JWT_LEGACY_HS256_VERIFY: bool = True
+
+    # ---- Rate Limiting ----
+    # Production'da True. Lokal dev'de False bırakırsan integration test'ler
+    # 429 yemez. Limitler kod tarafında sabit: login/register/forgot 5/min.
+    RATE_LIMIT_ENABLED: bool = True
+
+    # ---- Production hardening flag ----
+    # True iken: CORS regex sıkı, CSRF zorunlu, HS256 fallback uyarı log'lar,
+    # security headers preload-ready HSTS. False (dev): permissive defaults.
+    # Render'da APP_ENV=production set'le.
+    APP_ENV: str = "development"
 
     # Servisler arası auth (örn: BBB finans ajanları → Miyaris API).
     # Kullanıcı JWT'sinden bağımsız, paylaşılan statik anahtar.

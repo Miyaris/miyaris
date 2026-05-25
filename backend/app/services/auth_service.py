@@ -121,9 +121,15 @@ async def authenticate(db: AsyncSession, email: str, password: str) -> User:
 
 
 def issue_tokens(user_id: uuid.UUID) -> TokenResponse:
+    """DEPRECATED — DB-persisted refresh rotation için
+    `refresh_token_service.issue_token_pair` kullan. Bu helper sadece
+    geriye uyumluluk (ör. legacy testler) için tutulur; ürettiği refresh
+    DB'de değildir → /refresh endpoint'i reject eder.
+    """
+    jti = str(uuid.uuid4())
     return TokenResponse(
         access_token=create_access_token(user_id),
-        refresh_token=create_refresh_token(user_id),
+        refresh_token=create_refresh_token(user_id, jti),
     )
 
 
@@ -237,24 +243,43 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
     return user
 
 
-async def refresh_access_token(db: AsyncSession, refresh_token: str) -> TokenResponse:
+async def refresh_access_token(
+    db: AsyncSession,
+    refresh_token: str,
+    request=None,  # fastapi.Request — opsiyonel, audit log için
+) -> TokenResponse:
+    """DB-backed refresh token rotation + reuse detection.
+
+    `refresh_token_service.rotate_refresh`'e delege eder. Reuse algılanırsa
+    kullanıcının tüm session'ları zaten iptal edilir; biz burada 401 +
+    "tekrar giriş yap" mesajı döneriz.
+    """
+    from app.services.refresh_token_service import (
+        InvalidRefreshTokenError,
+        RefreshTokenReuseError,
+        rotate_refresh,
+    )
+
     try:
-        payload = decode_token(refresh_token)
-    except JWTError as e:
+        new_pair = await rotate_refresh(db, refresh_token, request)
+    except RefreshTokenReuseError as e:
+        # Compromise sinyali — kullanıcıya net mesaj, frontend logout edip
+        # login sayfasına yönlendirir.
+        raise AuthError(str(e)) from e
+    except InvalidRefreshTokenError as e:
         raise AuthError("Geçersiz veya süresi dolmuş refresh token") from e
 
-    if payload.get("type") != "refresh":
-        raise AuthError("Yanlış token tipi")
-
-    user_id = payload.get("sub")
-    if not user_id:
-        raise AuthError("Geçersiz token")
-
-    # Kullanıcı hâlâ aktif mi kontrol et
+    # Kullanıcı hâlâ aktif mi? rotation sonrası kontrol ediyoruz; eğer
+    # kullanıcı pasifleştirildiyse refresh'i revoke et + reject.
+    payload = decode_token(new_pair.access_token)
+    user_id = uuid.UUID(payload["sub"])
     user = (
-        await db.execute(select(User).where(User.id == uuid.UUID(user_id)))
+        await db.execute(select(User).where(User.id == user_id))
     ).scalar_one_or_none()
     if user is None or not user.is_active:
-        raise AuthError("Hesap bulunamadı")
+        # Yeni refresh'i de revoke et (rotation'da yarattığımız jti)
+        from app.services.refresh_token_service import revoke_refresh_by_jwt
+        await revoke_refresh_by_jwt(db, new_pair.refresh_token)
+        raise AuthError("Hesap pasif veya bulunamadı")
 
-    return issue_tokens(user.id)
+    return new_pair
