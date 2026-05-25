@@ -1,11 +1,16 @@
+import asyncio
+import logging
 import uuid
 
 from fastapi import APIRouter, Depends, status
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user
 from app.models.auction import Auction, AuctionStatus
+from app.models.bid import Bid
 from app.models.user import User
 from app.schemas.auction import (
     AuctionCreate,
@@ -16,9 +21,12 @@ from app.schemas.auction import (
 )
 from app.schemas.bid import BidCreate, BidPublic
 from app.schemas.escrow import BuyNowRequest
-from app.services import auction_service, bid_service
+from app.services import auction_service, bid_service, email_service
+from app.services.bid_service import bidder_alias
 from app.utils.pagination import PaginationParams, pagination_dep
 from app.websockets.manager import manager
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/auctions", tags=["auctions"])
 
@@ -185,7 +193,28 @@ async def place_bid(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Teklif ver. Başarı sonrası WebSocket'e canlı yayın düşer."""
+    """Teklif ver. Başarı sonrası WebSocket'e canlı yayın düşer ve önceki
+    en yüksek teklif sahibine (varsa, başka bir kullanıcı ise) outbid e-postası
+    fire-and-forget şekilde gönderilir.
+
+    NOT: Önceki en yüksek teklifi YENİ teklif commit edilmeden önce çekiyoruz —
+    aksi halde `auction.current_price` zaten yeni miktara dönmüş olur ve
+    "önceki" bilgiyi kaybederiz.
+    """
+    # ----- Outbid bildirimi için önceki highest bid'i ÖNCEDEN sakla ----------
+    prev_highest_q = await db.execute(
+        select(Bid)
+        .where(Bid.auction_id == auction_id)
+        .order_by(Bid.amount.desc(), Bid.placed_at.desc())
+        .options(selectinload(Bid.bidder), selectinload(Bid.auction).selectinload(Auction.watch))
+        .limit(1)
+    )
+    prev_highest = prev_highest_q.scalar_one_or_none()
+    prev_amount_str = str(prev_highest.amount) if prev_highest else None
+    prev_bidder = prev_highest.bidder if prev_highest else None
+    prev_watch_brand = prev_highest.auction.watch.brand if prev_highest else None
+    prev_watch_model = prev_highest.auction.watch.model if prev_highest else None
+
     bid = await bid_service.place_bid(db, auction_id, user, payload)
 
     # bid_service auction.current_price ve extended_until'ı güncelledi.
@@ -200,7 +229,7 @@ async def place_bid(
             "data": {
                 "bid": {
                     "id": str(bid.id),
-                    "bidder_name": user.full_name,
+                    "bidder_alias": bidder_alias(bid.bidder_id),
                     "amount": str(bid.amount),
                     "placed_at": bid.placed_at.isoformat(),
                     "is_proxy": bid.is_proxy,
@@ -219,11 +248,31 @@ async def place_bid(
         },
     )
 
+    # ----- Outbid e-postası — fire & forget ----------------------------------
+    # Email göndermek bid commit'inin yanıt süresine eklenmesin; arka planda at.
+    if (
+        prev_bidder is not None
+        and prev_bidder.id != user.id
+        and prev_amount_str is not None
+    ):
+        try:
+            asyncio.create_task(
+                email_service.send_outbid_email(
+                    user=prev_bidder,
+                    watch_brand=prev_watch_brand or "",
+                    watch_model=prev_watch_model or "",
+                    previous_amount=prev_amount_str,
+                    new_amount=str(bid.amount),
+                    auction_id=str(auction_id),
+                )
+            )
+        except Exception:  # noqa: BLE001
+            logger.exception("Outbid email scheduling failed for auction %s", auction_id)
+
     return BidPublic(
         id=bid.id,
         auction_id=bid.auction_id,
-        bidder_id=bid.bidder_id,
-        bidder_name=user.full_name,
+        bidder_alias=bidder_alias(bid.bidder_id),
         amount=bid.amount,
         placed_at=bid.placed_at,
         is_proxy=bid.is_proxy,
@@ -237,8 +286,7 @@ async def list_bids(auction_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
         BidPublic(
             id=b.id,
             auction_id=b.auction_id,
-            bidder_id=b.bidder_id,
-            bidder_name=b.bidder.full_name,
+            bidder_alias=bidder_alias(b.bidder_id),
             amount=b.amount,
             placed_at=b.placed_at,
             is_proxy=b.is_proxy,

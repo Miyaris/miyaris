@@ -28,8 +28,8 @@ export function LiveBidHistory({ bids, bidCount }: Props) {
               }`}
             >
               <div className="flex items-baseline gap-3">
-                <span className="text-sm text-charcoal-700">
-                  {b.bidder_name ?? "Anonim"}
+                <span className="text-sm text-charcoal-700 tabular-nums">
+                  {b.bidder_alias}
                 </span>
                 {idx === 0 && (
                   <span className="text-[10px] tracking-widest uppercase text-brass">

@@ -21,6 +21,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 from app.models.bid import Bid
 from app.services import auction_service
+from app.services.bid_service import bidder_alias
 from app.utils.exceptions import APIError
 from app.websockets.manager import manager
 
@@ -65,7 +66,8 @@ async def auction_ws(
                         "recent_bids": [
                             {
                                 "id": str(b.id),
-                                "bidder_name": b.bidder.full_name,
+                                "auction_id": str(b.auction_id),
+                                "bidder_alias": bidder_alias(b.bidder_id),
                                 "amount": str(b.amount),
                                 "placed_at": b.placed_at.isoformat(),
                                 "is_proxy": b.is_proxy,

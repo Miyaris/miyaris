@@ -1,3 +1,4 @@
+import hashlib
 import uuid
 from datetime import datetime, timedelta, timezone
 from decimal import Decimal
@@ -17,6 +18,18 @@ from app.utils.exceptions import ConflictError, ForbiddenError, NotFoundError
 ANTI_SNIPING_WINDOW = timedelta(minutes=5)
 # Bu tutarın üstündeki teklifler için KYC zorunlu (USD)
 KYC_REQUIRED_AMOUNT = Decimal("3000")
+
+
+def bidder_alias(bidder_id: uuid.UUID) -> str:
+    """Anonim ama deterministik bidder etiketi.
+
+    SHA-256(uuid_str)[:6] uppercase. Aynı kullanıcı her zaman aynı kısaltmayı
+    alır → "Bu Üye sürekli teklif veriyor" sezgisi korunur, fakat UUID veya
+    ad/soyad API yanıtlarına sızmaz. Farklı UUID'ler farklı kısaltma alır
+    (6-hex collision ihtimali ~1 / 16M).
+    """
+    h = hashlib.sha256(str(bidder_id).encode("utf-8")).hexdigest()[:6].upper()
+    return f"Üye #{h}"
 
 
 async def place_bid(

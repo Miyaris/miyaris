@@ -140,10 +140,12 @@ export interface AuctionPublic {
 }
 
 export interface BidPublic {
+  /** Backend gerçek bidder kimliğini sızdırmaz; anonim 'Üye #A1B2C3' formatlı
+   *  deterministik etiket gönderir. Aynı kullanıcı her teklifte aynı alias'i
+   *  alır — bid history içinde tutarlı görünüm. */
   id: string;
   auction_id: string;
-  bidder_id: string;
-  bidder_name: string | null;
+  bidder_alias: string;
   amount: string;
   placed_at: string;
   is_proxy: boolean;

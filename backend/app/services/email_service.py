@@ -114,6 +114,56 @@ async def send_password_reset_email(user: User, token: str) -> None:
     )
 
 
+async def send_outbid_email(
+    *,
+    user: User,
+    watch_brand: str,
+    watch_model: str,
+    previous_amount: str,
+    new_amount: str,
+    auction_id: str,
+) -> None:
+    """Önceki en yüksek teklif sahibine 'geçildiniz' bildirimi gönder.
+
+    Mail body içinde mevcut tekliflerini ve yeni en yüksek teklifi gösterir,
+    müzayedenin canlı bağlantısını ekler — kullanıcı doğrudan yeni teklif
+    verebilsin diye. Mail gönderilemese bile (Resend down, vs.) yeni
+    teklifin commit'i bloklanmaz; çağıran taraf asyncio.create_task ile
+    fire-and-forget eder.
+    """
+    settings = get_settings()
+    display_name = (user.first_name or "").strip() or user.full_name or "Üyemiz"
+    auction_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/auctions/{auction_id}"
+    )
+    watch_label = f"{watch_brand} {watch_model}".strip()
+
+    html = _outbid_html(
+        display_name=display_name,
+        watch_label=watch_label,
+        previous_amount=previous_amount,
+        new_amount=new_amount,
+        auction_url=auction_url,
+    )
+    text = _outbid_text(
+        display_name=display_name,
+        watch_label=watch_label,
+        previous_amount=previous_amount,
+        new_amount=new_amount,
+        auction_url=auction_url,
+    )
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [user.email],
+            "subject": f"Teklifiniz Geçildi — {watch_label}",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
 async def send_welcome_email(user: User) -> None:
     """Doğrulama bittikten sonra: lüks tonlu karşılama maili."""
     settings = get_settings()
@@ -248,6 +298,63 @@ def _password_reset_text(*, display_name: str, reset_url: str) -> str:
         "Aşağıdaki linki kullanarak yeni şifrenizi belirleyebilirsiniz.\n\n"
         f"Sıfırlama linki (1 saat geçerli):\n{reset_url}\n\n"
         "Bu talebi siz yapmadıysanız bu mesajı görmezden gelebilirsiniz.\n\n"
+        "— Miyaris"
+    )
+
+
+def _outbid_html(
+    *,
+    display_name: str,
+    watch_label: str,
+    previous_amount: str,
+    new_amount: str,
+    auction_url: str,
+) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Müzayede Bildirimi</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 16px 0;line-height:1.3;">Teklifiniz Geçildi, {display_name}</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  <strong style="color:#1F1F23;">{watch_label}</strong> müzayedesinde verdiğiniz teklifin üzerine daha yüksek bir teklif geldi. Müzayede henüz açık &mdash; liderliği geri almak için yeni bir teklif verebilirsiniz.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 28px 0;border-collapse:collapse;">
+  <tr>
+    <td style="padding:14px 18px;background-color:#F8F6F0;border-left:3px solid #6B6B70;width:50%;">
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#6B6B70;text-transform:uppercase;">Sizin Teklifiniz</p>
+      <p style="margin:0;font-size:18px;color:#1F1F23;font-weight:500;">${previous_amount}</p>
+    </td>
+    <td style="padding:14px 18px;background-color:#F8F6F0;border-left:3px solid #B8A179;width:50%;">
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;">Yeni En Yüksek</p>
+      <p style="margin:0;font-size:18px;color:#1F1F23;font-weight:500;">${new_amount}</p>
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{auction_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Müzayedeye Dön</a>
+    </td>
+  </tr>
+</table>
+<p style="font-size:12px;line-height:1.7;color:#6B6B70;margin:24px 0 0 0;border-top:1px solid #ECEAE3;padding-top:20px;">
+  Diğer üyelerin kimliği müzayede sırasında gizli tutulur; herkes yalnızca anonim üye etiketiyle görünür.
+</p>"""
+    return _BASE_WRAPPER.format(title="Teklifiniz Geçildi", body=body)
+
+
+def _outbid_text(
+    *,
+    display_name: str,
+    watch_label: str,
+    previous_amount: str,
+    new_amount: str,
+    auction_url: str,
+) -> str:
+    return (
+        f"Merhaba {display_name},\n\n"
+        f"{watch_label} müzayedesinde ${previous_amount} olarak verdiğiniz "
+        f"teklif geçildi. Yeni en yüksek teklif: ${new_amount}.\n\n"
+        "Müzayede henüz açık — liderliği geri almak için yeni bir teklif "
+        f"verebilirsiniz:\n{auction_url}\n\n"
         "— Miyaris"
     )
 
