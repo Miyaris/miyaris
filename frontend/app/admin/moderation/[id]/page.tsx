@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AIValuationCard } from "@/components/account/AIValuationCard";
 import { CertificateForm } from "@/app/admin/moderation/[id]/CertificateForm";
 import { RejectForm } from "@/app/admin/moderation/[id]/RejectForm";
+import { RevertForm } from "@/app/admin/moderation/[id]/RevertForm";
 import { WatchGallery } from "@/components/watches/WatchGallery";
 import { ApiError, backendFetch } from "@/lib/api";
 import type { AdminWatchDetail } from "@/lib/types";
@@ -48,15 +49,9 @@ export default async function ModerationDetailPage({
     watch.status === "pending_pre_expertise" ||
     watch.status === "awaiting_expertise";
 
-  const STATUS_LABELS: Record<string, string> = {
-    draft: "Taslak",
-    pending_review: "İnceleniyor",
-    pending_pre_expertise: "Ön Ekspertiz Bekliyor",
-    active: "Aktif",
-    awaiting_expertise: "Ekspertiz Bekliyor",
-    sold: "Satıldı",
-    rejected: "Reddedildi",
-  };
+  // Karar verilmiş — revert edilebilir (SOLD hariç).
+  const isRevertable =
+    watch.status === "active" || watch.status === "rejected";
 
   return (
     <div>
@@ -140,15 +135,18 @@ export default async function ModerationDetailPage({
               <CertificateForm watchId={watch.id} />
               <RejectForm watchId={watch.id} />
             </>
+          ) : isRevertable ? (
+            <RevertForm
+              watchId={watch.id}
+              currentStatus={watch.status}
+              hasCertificate={watch.has_certificate}
+            />
           ) : (
             <div className="border border-line bg-ivory-50 p-6">
               <span className="eyebrow mb-2 block">Karar verildi</span>
               <p className="text-sm text-charcoal-700">
-                Bu saat artık{" "}
-                <strong>
-                  {STATUS_LABELS[watch.status] ?? watch.status}
-                </strong>{" "}
-                durumunda. Moderasyon eylemleri kapalı.
+                Bu saat artık <strong>Satıldı</strong> durumunda. Eskrow
+                akışına girmiş ilanlar moderasyondan geri alınamaz.
               </p>
             </div>
           )}

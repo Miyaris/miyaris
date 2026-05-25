@@ -44,6 +44,14 @@ _MODERATION_QUEUE_STATUSES: tuple[WatchStatus, ...] = (
     WatchStatus.AWAITING_EXPERTISE,
 )
 
+# "Geçmiş moderasyon" — admin'in karar verdiği saatler. SOLD dahil değil
+# çünkü satışa girmiş saatler artık eskrow/operasyon akışına ait, moderasyon
+# revert'i veri tutarsızlığı yaratır.
+_DECIDED_STATUSES: tuple[WatchStatus, ...] = (
+    WatchStatus.ACTIVE,
+    WatchStatus.REJECTED,
+)
+
 
 async def list_pending(
     db: AsyncSession, limit: int = 50, offset: int = 0
@@ -122,6 +130,80 @@ async def issue_certificate(
     await db.refresh(watch)
     await db.refresh(cert)
     return watch, cert
+
+
+async def list_decided(
+    db: AsyncSession, limit: int = 50, offset: int = 0
+) -> list[Watch]:
+    """Geçmiş moderasyon — karar verilmiş saatler (ACTIVE/REJECTED).
+
+    En son karar verilen üstte (updated_at desc). SOLD intentionally hariç —
+    eskrow akışına girmiş saatleri burada göstermek admin'i yanıltır.
+    """
+    result = await db.execute(
+        select(Watch)
+        .where(Watch.status.in_(_DECIDED_STATUSES))
+        .options(
+            selectinload(Watch.seller),
+            selectinload(Watch.images),
+            selectinload(Watch.valuations),
+            selectinload(Watch.certificate),
+        )
+        .order_by(Watch.updated_at.desc())
+        .limit(limit)
+        .offset(offset)
+    )
+    return list(result.scalars().all())
+
+
+async def revert_to_pending(
+    db: AsyncSession,
+    watch_id: uuid.UUID,
+    admin: User,  # noqa: ARG001 — ileride audit log için
+) -> Watch:
+    """Karar geri al — saati PENDING_REVIEW'a çevirir, yan etkileri reverse eder.
+
+    Yan etki reverse'leri:
+      - Sertifika varsa SİL (cascade ile temizlenir, audit kaybı bilinçli MVP kararı).
+      - NOT_AUTHENTIC verdict ile banlanmış satıcı varsa is_active=True.
+      - reject_watch ile bırakılan [ADMIN_REJECT] notunu temizle.
+
+    Kontroller:
+      - Sadece ACTIVE veya REJECTED saatler revert edilebilir.
+      - SOLD saatler revert edilmez (eskrow akışı bozulur).
+
+    NOT: ACTIVE saatte aktif müzayede var mı kontrol etmiyoruz — MVP için
+    admin'in dikkati varsayılıyor. İleride live auction guard eklenebilir.
+    """
+    watch = await get_detail(db, watch_id)
+
+    if watch.status not in _DECIDED_STATUSES:
+        raise ConflictError(
+            "Sadece kararı verilmiş saatler (Aktif/Reddedildi) geri alınabilir"
+        )
+
+    # Sahtecilik banı reverse — sertifika NOT_AUTHENTIC ise satıcıyı re-activate
+    if (
+        watch.certificate is not None
+        and watch.certificate.verdict == AuthenticityVerdict.NOT_AUTHENTIC
+    ):
+        watch.seller.is_active = True
+
+    # Sertifikayı sil (yeni karar verilecek; eski cert audit'i kaybediyoruz)
+    if watch.certificate is not None:
+        await db.delete(watch.certificate)
+
+    # Sertifikasız red notunu temizle
+    if watch.ai_processing_error and watch.ai_processing_error.startswith(
+        "[ADMIN_REJECT]"
+    ):
+        watch.ai_processing_error = None
+
+    watch.status = WatchStatus.PENDING_REVIEW
+
+    await db.commit()
+    await db.refresh(watch)
+    return watch
 
 
 async def reject_watch(

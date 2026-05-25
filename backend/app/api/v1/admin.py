@@ -96,8 +96,40 @@ async def list_pending(
     return [_to_list_item(w) for w in watches]
 
 
+@router.get("/watches/decided", response_model=list[AdminWatchListItem])
+async def list_decided(
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(pagination_dep),
+):
+    """Geçmiş moderasyon — karar verilmiş saatler (ACTIVE/REJECTED).
+
+    Sıralama: en son karar verilen üstte. Admin'in karar değişikliği için
+    `POST /watches/{id}/revert` ile PENDING_REVIEW'a geri çekilebilir.
+    """
+    watches = await moderation_service.list_decided(
+        db, limit=pagination.limit, offset=pagination.offset
+    )
+    return [_to_list_item(w) for w in watches]
+
+
 @router.get("/watches/{watch_id}", response_model=AdminWatchDetail)
 async def get_watch(watch_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
+    watch = await moderation_service.get_detail(db, watch_id)
+    return _to_detail(watch)
+
+
+@router.post("/watches/{watch_id}/revert", response_model=AdminWatchDetail)
+async def revert_decision(
+    watch_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+    user: User = Depends(get_current_user),
+):
+    """Karar geri al — saati ekspertiz kuyruğuna geri döndür.
+
+    Sertifika silinir, satıcı banı (varsa) kaldırılır, statü PENDING_REVIEW.
+    Sadece ACTIVE veya REJECTED saatler revert edilebilir; SOLD bloklanır.
+    """
+    await moderation_service.revert_to_pending(db, watch_id, user)
     watch = await moderation_service.get_detail(db, watch_id)
     return _to_detail(watch)
 

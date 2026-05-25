@@ -38,6 +38,8 @@ export function Header({ user }: { user: UserPublic | null }) {
           {user ? (
             <>
               {(user.role === "admin" || user.role === "expert") && (
+                // Tek link: Moderasyon. Güvenli Kasa + Kullanıcılar artık
+                // AdminSidebar'dan erişiliyor — header'da yer açmak için.
                 <div className="hidden sm:flex items-center gap-4">
                   <Link
                     href="/admin/moderation"
@@ -45,20 +47,6 @@ export function Header({ user }: { user: UserPublic | null }) {
                   >
                     Moderasyon
                   </Link>
-                  <Link
-                    href="/admin/escrow"
-                    className="text-xs tracking-widest uppercase text-brass-dark hover:text-brass border-b border-brass/30 pb-0.5"
-                  >
-                    Güvenli Kasa
-                  </Link>
-                  {user.role === "admin" && (
-                    <Link
-                      href="/admin/users"
-                      className="text-xs tracking-widest uppercase text-brass-dark hover:text-brass border-b border-brass/30 pb-0.5"
-                    >
-                      Kullanıcılar
-                    </Link>
-                  )}
                 </div>
               )}
               <Link
