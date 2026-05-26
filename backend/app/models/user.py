@@ -58,6 +58,12 @@ class User(Base, TimestampMixin):
     mersis_no: Mapped[str | None] = mapped_column(String(16), unique=True)
     kyc_verified: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
+    # Canlı müzayede sunucusu (Presenter) yetkisi — `role`'dan bağımsız, çapraz
+    # rolde verilebilir. Admin paneli üzerinden manuel toggle, default False.
+    # /presenter/* rotaları bu flag'i okur; route guard get_current_presenter.
+    is_presenter: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
     # E-posta doğrulama (Resend ile) — kullanıcı linke tıklayıp tıklamadığı.
     # Kayıt anında False; /api/v1/auth/verify-email başarılı olduğunda True.
     is_verified: Mapped[bool] = mapped_column(

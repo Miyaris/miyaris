@@ -60,6 +60,24 @@ def require_role(*allowed_roles: UserRole):
     return role_checker
 
 
+async def get_current_presenter(
+    user: User = Depends(get_current_user),
+) -> User:
+    """Canlı müzayede sunucusu (Presenter) yetki guard'ı.
+
+    `role`'dan bağımsız — admin tarafından `users.is_presenter=true` set'lenmiş
+    her hesap geçer. Yetkisi olmayanlara 403 döner. `/presenter/*` rotalarındaki
+    backend endpoint'lerinde (gelecekteki WS, action endpoint'leri) bu
+    dependency ile koruma sağlanır.
+    """
+    if not user.is_presenter:
+        raise APIError(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Bu sayfaya erişim yetkiniz bulunmamaktadır",
+        )
+    return user
+
+
 async def require_service_token(
     x_service_key: str | None = Header(default=None, alias="X-Service-Key"),
 ) -> None:

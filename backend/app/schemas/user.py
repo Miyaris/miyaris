@@ -108,6 +108,9 @@ class UserPublic(UserBase):
     # E-posta doğrulama durumu — kayıt anında False, /auth/verify-email başarılı
     # olduğunda True. Frontend gate'leme için bu alanı kullanabilir.
     is_verified: bool = False
+    # Canlı müzayede sunucu paneli (`/presenter/*`) yetkisi — admin
+    # tarafından manuel toggle. Frontend layout guard'ı bu alanı okur.
+    is_presenter: bool = False
     tc_kimlik_no: str | None = None
     mersis_no: str | None = None
     created_at: datetime

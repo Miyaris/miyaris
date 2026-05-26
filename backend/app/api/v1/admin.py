@@ -15,6 +15,7 @@ from app.models.escrow import EscrowStatus, EscrowTransaction
 from app.schemas.admin import (
     AdminAuctionListItem,
     AdminKycSetRequest,
+    AdminPresenterSetRequest,
     AdminSellerInfo,
     AdminUserListItem,
     AdminUserListResponse,
@@ -367,6 +368,34 @@ async def set_user_kyc(
     if user is None:
         raise NotFoundError("Kullanıcı bulunamadı")
     user.kyc_verified = payload.kyc_verified
+    await db.commit()
+    await db.refresh(user)
+    return AdminUserListItem.model_validate(user)
+
+
+@router.post(
+    "/users/{user_id}/set-presenter",
+    response_model=AdminUserListItem,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def set_user_presenter(
+    user_id: uuid.UUID,
+    payload: AdminPresenterSetRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Admin override — kullanıcıya canlı müzayede sunucusu (Presenter) yetkisi
+    verir veya geri çeker.
+
+    Presenter yetkili hesaplar `/presenter/*` rotalarına erişebilir; teklif
+    yönetimi ve canlı yayın paneli onlara açıktır. Yetki rol'den bağımsız —
+    aynı admin paneli üzerinden buyer/expert/seller/admin herhangi bir hesaba
+    verilebilir.
+    """
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise NotFoundError("Kullanıcı bulunamadı")
+    user.is_presenter = payload.is_presenter
     await db.commit()
     await db.refresh(user)
     return AdminUserListItem.model_validate(user)

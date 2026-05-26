@@ -42,6 +42,10 @@ export interface UserPublic {
   phone: string | null;
   role: UserRole;
   kyc_verified: boolean;
+  is_verified?: boolean;
+  /** Admin tarafından verilen canlı müzayede sunucu (Presenter) yetkisi.
+   *  `/presenter/*` layout guard'ı bu alanı okur. */
+  is_presenter?: boolean;
   tc_kimlik_no: string | null;
   mersis_no: string | null;
   created_at: string;
@@ -57,6 +61,7 @@ export interface AdminUserListItem {
   is_verified: boolean;
   is_active: boolean;
   kyc_verified: boolean;
+  is_presenter: boolean;
   created_at: string;
 }
 

@@ -148,6 +148,9 @@ export default async function AdminUsersPage({
                           tone={u.kyc_verified ? "verified" : "muted"}
                           label={u.kyc_verified ? "KYC" : "KYC yok"}
                         />
+                        {u.is_presenter && (
+                          <UserStatusBadge tone="brass" label="Presenter" />
+                        )}
                         {!u.is_active && (
                           <UserStatusBadge tone="muted" label="Pasif" />
                         )}
@@ -160,6 +163,7 @@ export default async function AdminUsersPage({
                       <UserActions
                         userId={u.id}
                         kycVerified={u.kyc_verified}
+                        isPresenter={u.is_presenter}
                       />
                     </td>
                   </tr>

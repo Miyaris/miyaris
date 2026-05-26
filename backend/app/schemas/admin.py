@@ -114,6 +114,7 @@ class AdminUserListItem(BaseModel):
     is_verified: bool
     is_active: bool
     kyc_verified: bool
+    is_presenter: bool = False
     created_at: datetime
 
 
@@ -135,6 +136,17 @@ class AdminKycSetRequest(BaseModel):
     """
 
     kyc_verified: bool
+
+
+class AdminPresenterSetRequest(BaseModel):
+    """Admin override: kullanıcının Presenter (yayıncı) yetkisini set'le.
+
+    Yetkili kullanıcılar `/presenter/*` canlı müzayede sunucu ekranına erişir.
+    Rol'den bağımsız bir yetki — admin/expert/buyer/seller herhangi biri
+    presenter olabilir. Hesap suistimaline karşı admin elle yönetir.
+    """
+
+    is_presenter: bool
 
 
 # ----- Müzayede yönetimi ------------------------------------------------------
