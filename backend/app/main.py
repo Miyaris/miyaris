@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.v1 import admin, auctions, auth, orders, service, watches
+from app.api.v1 import admin, auctions, auth, orders, presenter, service, watches
 from app.core.bootstrap import promote_seed_admins
 from app.core.config import get_settings
 from app.core.middleware import SecurityHeadersMiddleware, init_rate_limiter
@@ -132,6 +132,9 @@ def create_app() -> FastAPI:
 
     # REST — admin/expert moderasyon (rol kontrollü)
     app.include_router(admin.router, prefix="/api/v1")
+
+    # REST — presenter (canlı müzayede sunucu paneli) — is_presenter zorunlu
+    app.include_router(presenter.router, prefix="/api/v1")
 
     # REST — servisler arası (X-Service-Key zorunlu)
     app.include_router(service.router, prefix="/api/v1")

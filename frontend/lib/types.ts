@@ -144,6 +144,45 @@ export interface AuctionPublic {
   bid_count: number;
 }
 
+// === Presenter (canlı müzayede sunucusu) ===
+// Backend `PresenterShowcaseListItem` ile birebir.
+
+export interface PresenterShowcase {
+  auction_id: string;
+  watch_id: string;
+  brand: string;
+  model: string;
+  reference_number: string;
+  primary_image_url: string | null;
+  starting_price: string;
+  current_price: string;
+  buy_it_now_price: string | null;
+  starts_at: string;
+  ends_at: string;
+  extended_until: string | null;
+  status: AuctionStatus;
+  bid_count: number;
+}
+
+/** POST /api/presenter/showcases body — backend `PresenterShowcaseCreate`. */
+export interface PresenterShowcaseCreatePayload {
+  brand: string;
+  model: string;
+  reference_number: string;
+  year: number;
+  condition: WatchCondition;
+  description: string;
+  serial_number?: string | null;
+  box_papers: boolean;
+  image_urls: string[];
+  starts_at: string; // ISO 8601 + tz offset
+  duration_minutes: number;
+  starting_price: string;
+  min_bid_increment?: string;
+  reserve_price?: string | null;
+  buy_it_now_price?: string | null;
+}
+
 export interface BidPublic {
   /** Backend gerçek bidder kimliğini sızdırmaz; anonim 'Üye #A1B2C3' formatlı
    *  deterministik etiket gönderir. Aynı kullanıcı her teklifte aynı alias'i
