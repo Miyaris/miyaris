@@ -49,6 +49,16 @@ export function Header({ user }: { user: UserPublic | null }) {
                   </Link>
                 </div>
               )}
+              {user.is_presenter && (
+                // Presenter yetkisi olan hesaplara canlı sunucu paneline
+                // direkt giriş kısayolu — brass renkli, ayırt edici.
+                <Link
+                  href="/presenter"
+                  className="hidden sm:inline-block text-xs tracking-widest uppercase text-brass-dark hover:text-brass border-b border-brass/30 pb-0.5"
+                >
+                  Sunucu Paneli
+                </Link>
+              )}
               <Link
                 href="/account/bids"
                 className="text-sm text-charcoal-700 hover:text-brass transition-colors hidden md:inline"
