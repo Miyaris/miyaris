@@ -143,8 +143,15 @@ async def list_auctions(
     limit: int = 20,
     offset: int = 0,
 ) -> list[Auction]:
+    """Public müzayede listesi.
+
+    `is_hidden=True` olan müzayedeler her zaman filtrelenir — admin tarafından
+    sayfadan kaldırılmış olabilirler. Sadece /admin/* endpoint'leri gizli
+    müzayedeleri görür.
+    """
     stmt = (
         select(Auction)
+        .where(Auction.is_hidden == False)  # noqa: E712 — SQL boolean
         .options(selectinload(Auction.watch).selectinload(Watch.images))
         .order_by(Auction.ends_at.asc())
         .limit(limit)
@@ -271,28 +278,85 @@ async def buy_now(
 async def list_admin_scheduled(
     db: AsyncSession, limit: int = 50, offset: int = 0
 ) -> list[Auction]:
-    """Admin panel için aktif/scheduled/live müzayedeler.
+    """Admin paneli için aktif/scheduled/live müzayedeler — Aktif sekmesi.
 
-    ENDED/COMPLETED/CANCELLED hariç — bunlar artık eskrow/operasyon akışına
-    ait. SCHEDULED en yakın → LIVE → en uzak sırasıyla.
+    Sadece is_hidden=False satırları döner. Gizli müzayedeler ayrı tab'de
+    görülür (list_admin_auctions("hidden")).
     """
-    stmt = (
-        select(Auction)
-        .where(
-            Auction.status.in_(
-                (AuctionStatus.SCHEDULED, AuctionStatus.LIVE)
-            )
-        )
-        .options(
-            selectinload(Auction.watch).selectinload(Watch.images),
-            selectinload(Auction.watch).selectinload(Watch.seller),
-        )
-        .order_by(Auction.starts_at.asc())
-        .limit(limit)
-        .offset(offset)
+    return await list_admin_auctions(db, tab="active", limit=limit, offset=offset)
+
+
+async def list_admin_auctions(
+    db: AsyncSession,
+    tab: str = "active",
+    limit: int = 50,
+    offset: int = 0,
+) -> list[Auction]:
+    """Admin paneli — sekmeli müzayede listesi.
+
+    tab değerleri:
+      * "active"  → SCHEDULED + LIVE, is_hidden=False. Sıralama: starts_at asc
+      * "past"    → ENDED + COMPLETED + CANCELLED, is_hidden=False. ends_at desc
+      * "hidden"  → tüm statüler, is_hidden=True. ends_at desc
+
+    Watch images + seller eager-loaded (kart render için).
+    """
+    base = select(Auction).options(
+        selectinload(Auction.watch).selectinload(Watch.images),
+        selectinload(Auction.watch).selectinload(Watch.seller),
     )
+
+    if tab == "active":
+        stmt = (
+            base.where(
+                Auction.is_hidden == False,  # noqa: E712
+                Auction.status.in_(
+                    (AuctionStatus.SCHEDULED, AuctionStatus.LIVE)
+                ),
+            )
+            .order_by(Auction.starts_at.asc())
+        )
+    elif tab == "past":
+        stmt = (
+            base.where(
+                Auction.is_hidden == False,  # noqa: E712
+                Auction.status.in_(
+                    (
+                        AuctionStatus.ENDED,
+                        AuctionStatus.COMPLETED,
+                        AuctionStatus.CANCELLED,
+                    )
+                ),
+            )
+            .order_by(Auction.ends_at.desc())
+        )
+    elif tab == "hidden":
+        stmt = (
+            base.where(Auction.is_hidden == True)  # noqa: E712
+            .order_by(Auction.ends_at.desc())
+        )
+    else:
+        raise ValueError(f"Geçersiz tab değeri: {tab}")
+
+    stmt = stmt.limit(limit).offset(offset)
     result = await db.execute(stmt)
     return list(result.scalars().unique().all())
+
+
+async def admin_set_hidden(
+    db: AsyncSession, auction_id: uuid.UUID, hidden: bool
+) -> Auction:
+    """Admin override — müzayedeyi sayfadan gizle/geri getir.
+
+    Soft-hide; status değişmez, teklif/escrow korunur. Public listelerden
+    kaybolur (`list_auctions` is_hidden=False filter), admin panelinin
+    "Gizli" sekmesinden geri getirilebilir.
+    """
+    auction = await get_auction(db, auction_id)
+    auction.is_hidden = hidden
+    await db.commit()
+    await db.refresh(auction)
+    return auction
 
 
 async def admin_move_to_current_week(

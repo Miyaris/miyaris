@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime
+from sqlalchemy import Boolean, DateTime
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Numeric
 from sqlalchemy.dialects.postgresql import UUID
@@ -63,6 +63,12 @@ class Auction(Base, TimestampMixin):
     winning_bid_id: Mapped[uuid.UUID | None] = mapped_column(
         UUID(as_uuid=True),
         ForeignKey("bids.id", use_alter=True, name="fk_auction_winning_bid"),
+    )
+    # Admin tarafından "sayfadan kaldırılmış" müzayedeler — public liste/detay
+    # endpoint'lerinden gizlenir ama DB'de durur (teklif geçmişi, escrow, audit
+    # trail korunur). Admin paneli "Gizli" sekmesinden geri getirilebilir.
+    is_hidden: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
     )
 
     watch: Mapped[Watch] = relationship(back_populates="auction", lazy="joined")

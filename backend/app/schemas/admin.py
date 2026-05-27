@@ -174,4 +174,5 @@ class AdminAuctionListItem(BaseModel):
     starts_at: datetime
     ends_at: datetime
     status: AuctionStatus
+    is_hidden: bool = False
     bid_count: int = 0

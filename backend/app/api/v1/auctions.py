@@ -116,6 +116,12 @@ async def my_bids(
 @router.get("/{auction_id}", response_model=AuctionPublic)
 async def get_auction(auction_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
     auction = await auction_service.get_auction(db, auction_id)
+    # Admin tarafından gizlenmiş müzayedeler public detay sayfasından da
+    # erişilemez — direkt link bilen biri için bile 404.
+    if auction.is_hidden:
+        from app.utils.exceptions import NotFoundError
+
+        raise NotFoundError("Açık artırma bulunamadı")
     bid_count = await auction_service.count_bids(db, auction_id)
     return _to_public(auction, bid_count)
 

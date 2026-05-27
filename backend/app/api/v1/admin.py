@@ -423,20 +423,59 @@ def _auction_list_item(auction) -> AdminAuctionListItem:
         starts_at=auction.starts_at,
         ends_at=auction.ends_at,
         status=auction.status,
+        is_hidden=auction.is_hidden,
         bid_count=len(auction.bids) if auction.bids else 0,
     )
 
 
 @router.get("/auctions", response_model=list[AdminAuctionListItem])
 async def list_admin_auctions(
+    tab: str = "active",
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(pagination_dep),
 ):
-    """Aktif (scheduled + live) müzayedeler. En yakın başlangıç üstte."""
-    auctions = await auction_service.list_admin_scheduled(
-        db, limit=pagination.limit, offset=pagination.offset
+    """Sekmeli müzayede listesi.
+
+    Query param `tab`:
+      * active (default) — SCHEDULED + LIVE, gizli olmayanlar
+      * past             — ENDED + COMPLETED + CANCELLED, gizli olmayanlar
+      * hidden           — admin tarafından sayfadan kaldırılmış olanlar
+    """
+    if tab not in ("active", "past", "hidden"):
+        from app.utils.exceptions import APIError
+        from fastapi import status as http_status
+        raise APIError(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz tab — active/past/hidden olmalı",
+        )
+    auctions = await auction_service.list_admin_auctions(
+        db, tab=tab, limit=pagination.limit, offset=pagination.offset
     )
     return [_auction_list_item(a) for a in auctions]
+
+
+@router.post("/auctions/{auction_id}/hide", response_model=AdminAuctionListItem)
+async def hide_auction(
+    auction_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Müzayedeyi sayfadan gizle (soft-hide). Public listelerden kaybolur,
+    teklif geçmişi/escrow korunur. Admin paneli 'Gizli' sekmesinden geri
+    getirilebilir."""
+    auction = await auction_service.admin_set_hidden(db, auction_id, True)
+    return _auction_list_item(auction)
+
+
+@router.post(
+    "/auctions/{auction_id}/unhide", response_model=AdminAuctionListItem
+)
+async def unhide_auction(
+    auction_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Gizlenmiş müzayedeyi public listelere geri getir."""
+    auction = await auction_service.admin_set_hidden(db, auction_id, False)
+    return _auction_list_item(auction)
 
 
 @router.post(

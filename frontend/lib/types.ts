@@ -319,6 +319,8 @@ export interface AdminAuctionListItem {
   starts_at: string;
   ends_at: string;
   status: AdminAuctionStatus;
+  /** Admin tarafından sayfadan gizlenmiş mi — public listelerden filtrelenir. */
+  is_hidden: boolean;
   bid_count: number;
 }
 

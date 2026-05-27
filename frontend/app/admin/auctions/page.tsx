@@ -8,6 +8,26 @@ import { AuctionActions } from "./AuctionActions";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Müzayedeler" };
 
+type Tab = "active" | "past" | "hidden";
+
+const TAB_META: Record<Tab, { label: string; description: string }> = {
+  active: {
+    label: "Aktif",
+    description:
+      "Bekleyen + canlı müzayedeler. 'Bu Hafta'ya Çek' geç katılım için, 'İptal' durdurmak için, 'Kaldır' sayfadan gizlemek için.",
+  },
+  past: {
+    label: "Geçmiş",
+    description:
+      "Biten, tamamlanan veya iptal edilmiş müzayedeler. Sayfadan kaldırılarak arşivlenebilir; teklif geçmişi ve satış kayıtları korunur.",
+  },
+  hidden: {
+    label: "Gizli",
+    description:
+      "Sayfadan kaldırılmış müzayedeler — alıcılar göremez. 'Geri Getir' ile yeniden yayına alınır.",
+  },
+};
+
 const STATUS_BADGE: Record<
   AdminAuctionStatus,
   { label: string; cls: string }
@@ -34,10 +54,10 @@ const STATUS_BADGE: Record<
   },
 };
 
-async function getAuctions(): Promise<AdminAuctionListItem[]> {
+async function getAuctions(tab: Tab): Promise<AdminAuctionListItem[]> {
   try {
     return await backendFetch<AdminAuctionListItem[]>(
-      "/api/v1/admin/auctions?limit=100",
+      `/api/v1/admin/auctions?tab=${tab}&limit=100`,
       { authenticated: true },
     );
   } catch {
@@ -53,7 +73,6 @@ function formatDateTime(iso: string): string {
 }
 
 function formatPrice(value: string): string {
-  // Backend Decimal'i string olarak gönderir; binlik ayracıyla TL formatla
   const num = Number(value);
   if (Number.isNaN(num)) return value;
   return new Intl.NumberFormat("tr-TR", {
@@ -63,34 +82,48 @@ function formatPrice(value: string): string {
   }).format(num);
 }
 
-export default async function AdminAuctionsPage() {
-  const auctions = await getAuctions();
-  const scheduledCount = auctions.filter((a) => a.status === "scheduled").length;
-  const liveCount = auctions.filter((a) => a.status === "live").length;
+function resolveTab(raw: string | undefined): Tab {
+  if (raw === "past" || raw === "hidden") return raw;
+  return "active";
+}
+
+export default async function AdminAuctionsPage({
+  searchParams,
+}: {
+  searchParams: { tab?: string };
+}) {
+  const tab = resolveTab(searchParams?.tab);
+  const auctions = await getAuctions(tab);
 
   return (
     <div>
-      <header className="mb-10 border-b border-line pb-6">
+      <header className="mb-8 border-b border-line pb-6">
         <span className="eyebrow text-brass-dark">Yönetim</span>
-        <div className="flex items-baseline justify-between mt-3">
+        <div className="flex items-baseline justify-between mt-3 gap-4 flex-wrap">
           <h1 className="font-display text-4xl">Müzayedeler</h1>
-          <div className="text-sm text-charcoal-500 tabular-nums space-x-4">
-            <span>{liveCount} canlı</span>
-            <span>·</span>
-            <span>{scheduledCount} bekliyor</span>
+          <div className="text-sm text-charcoal-500 tabular-nums">
+            {auctions.length} kayıt
           </div>
         </div>
         <p className="mt-4 text-sm text-charcoal-500 max-w-2xl leading-relaxed">
-          Aktif (bekleyen + canlı) müzayedeler. <strong>Bu Hafta&apos;ya
-          Çek</strong> butonu bir sonraki haftaya schedule edilmiş bir
-          müzayedeyi içinde bulunduğumuz haftaya taşır ve anında canlı yapar
-          — geç katılım onayları için.
+          {TAB_META[tab].description}
         </p>
       </header>
 
+      {/* Sekmeler */}
+      <nav className="flex items-center gap-1 mb-8 border-b border-line">
+        {(Object.keys(TAB_META) as Tab[]).map((t) => (
+          <TabLink key={t} target={t} active={t === tab} />
+        ))}
+      </nav>
+
       {auctions.length === 0 ? (
         <div className="py-24 text-center text-charcoal-300 eyebrow">
-          Aktif müzayede yok
+          {tab === "active"
+            ? "Aktif müzayede yok"
+            : tab === "past"
+              ? "Geçmiş müzayede yok"
+              : "Gizlenmiş müzayede yok"}
         </div>
       ) : (
         <div className="border-y border-line">
@@ -158,7 +191,9 @@ export default async function AdminAuctionsPage() {
                       </div>
                     </td>
                     <td className="py-4 px-2 text-right tabular-nums hidden md:table-cell">
-                      <div className="text-sm">{formatPrice(a.current_price)}</div>
+                      <div className="text-sm">
+                        {formatPrice(a.current_price)}
+                      </div>
                       {a.current_price !== a.starting_price && (
                         <div className="text-xs text-charcoal-300">
                           başlangıç: {formatPrice(a.starting_price)}
@@ -166,14 +201,25 @@ export default async function AdminAuctionsPage() {
                       )}
                     </td>
                     <td className="py-4 px-2">
-                      <span
-                        className={`inline-block text-xs tracking-wider uppercase border px-2 py-1 ${badge.cls}`}
-                      >
-                        {badge.label}
-                      </span>
+                      <div className="flex flex-col gap-1 items-start">
+                        <span
+                          className={`inline-block text-xs tracking-wider uppercase border px-2 py-1 ${badge.cls}`}
+                        >
+                          {badge.label}
+                        </span>
+                        {a.is_hidden && (
+                          <span className="inline-block text-[10px] tracking-widest uppercase border px-2 py-0.5 border-burgundy/30 text-burgundy bg-burgundy/5">
+                            Gizli
+                          </span>
+                        )}
+                      </div>
                     </td>
                     <td className="py-4 px-2">
-                      <AuctionActions auctionId={a.id} status={a.status} />
+                      <AuctionActions
+                        auctionId={a.id}
+                        status={a.status}
+                        isHidden={a.is_hidden}
+                      />
                     </td>
                   </tr>
                 );
@@ -192,5 +238,20 @@ export default async function AdminAuctionsPage() {
         </Link>
       </div>
     </div>
+  );
+}
+
+function TabLink({ target, active }: { target: Tab; active: boolean }) {
+  return (
+    <Link
+      href={`/admin/auctions?tab=${target}`}
+      className={`px-4 py-3 text-xs tracking-widest uppercase border-b-2 -mb-px transition-colors ${
+        active
+          ? "border-brass text-brass-dark"
+          : "border-transparent text-charcoal-500 hover:text-charcoal"
+      }`}
+    >
+      {TAB_META[target].label}
+    </Link>
   );
 }
