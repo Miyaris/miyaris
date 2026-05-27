@@ -68,6 +68,27 @@ async def place_bid(
     if payload.amount < min_required:
         raise ConflictError(f"Minimum teklif: ${min_required}")
 
+    # "Hemen Al" tavanı — buy_it_now_price tanımlı ise teklif (ve proxy tavan)
+    # buna ulaşmamalı. Bu seviyeye gelen alıcı "Hemen Al" akışını kullanmalı
+    # (escrow + teslimat + ödeme yöntemi seçimi orada yapılır). Proxy
+    # max_proxy_amount'ı da tavan altında tutuyoruz ki otomatik teklif
+    # mekanizması sınırı aşmasın.
+    if auction.buy_it_now_price is not None:
+        if payload.amount >= auction.buy_it_now_price:
+            raise ConflictError(
+                f"Teklif ${auction.buy_it_now_price} 'Hemen Al' fiyatına eşit "
+                "veya üstünde olamaz — bu seviyede 'Hemen Al' ile satın alın."
+            )
+        if (
+            payload.is_proxy
+            and payload.max_proxy_amount is not None
+            and payload.max_proxy_amount >= auction.buy_it_now_price
+        ):
+            raise ConflictError(
+                f"Proxy tavan ${auction.buy_it_now_price} 'Hemen Al' fiyatının "
+                "altında olmalı — aksi halde otomatik teklif sınırı aşar."
+            )
+
     if payload.amount >= KYC_REQUIRED_AMOUNT and not bidder.kyc_verified:
         raise ForbiddenError(
             f"${KYC_REQUIRED_AMOUNT} üstü teklifler için KYC doğrulaması gerekli"
