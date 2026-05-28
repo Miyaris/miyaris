@@ -145,13 +145,21 @@ async def list_auctions(
 ) -> list[Auction]:
     """Public müzayede listesi.
 
-    `is_hidden=True` olan müzayedeler her zaman filtrelenir — admin tarafından
-    sayfadan kaldırılmış olabilirler. Sadece /admin/* endpoint'leri gizli
-    müzayedeleri görür.
+    İki tür filtre her zaman uygulanır:
+      * `is_hidden=False` — admin tarafından sayfadan kaldırılmamış olmalı
+      * `is_presenter_auction=False` — presenter showcase'leri ana grid'de
+        gözükmez. Sunucu Instagram canlı yayını gibi dış kanaldan alıcı
+        çeker, direkt /auctions/{id} linkini paylaşır. Detay sayfası direct
+        link için açık kalır.
+
+    Admin endpoint'leri (`/admin/auctions`) bu filtreleri uygulamaz.
     """
     stmt = (
         select(Auction)
-        .where(Auction.is_hidden == False)  # noqa: E712 — SQL boolean
+        .where(
+            Auction.is_hidden == False,  # noqa: E712 — SQL boolean
+            Auction.is_presenter_auction == False,  # noqa: E712
+        )
         .options(selectinload(Auction.watch).selectinload(Watch.images))
         .order_by(Auction.ends_at.asc())
         .limit(limit)

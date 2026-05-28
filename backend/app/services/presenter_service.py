@@ -136,6 +136,9 @@ async def create_showcase(
         starts_at=payload.starts_at,
         ends_at=ends_at,
         status=initial_status,
+        # Public /auctions grid'inde gözükmesin — presenter Instagram'dan
+        # direkt /auctions/{id} linkini paylaşıyor.
+        is_presenter_auction=True,
     )
     db.add(auction)
 

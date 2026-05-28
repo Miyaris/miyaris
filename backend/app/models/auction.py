@@ -70,6 +70,13 @@ class Auction(Base, TimestampMixin):
     is_hidden: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
+    # Presenter (canlı müzayede sunucusu) tarafından açılan showcase — ana
+    # /auctions grid'inde gözükmez. Sunucu Instagram canlı yayını gibi dış
+    # kanaldan alıcı çeker, direkt /auctions/{id} linkini paylaşır. Detay
+    # sayfası direct link için açık kalır; sadece public listeden filtrelenir.
+    is_presenter_auction: Mapped[bool] = mapped_column(
+        Boolean, default=False, nullable=False, server_default="false"
+    )
 
     watch: Mapped[Watch] = relationship(back_populates="auction", lazy="joined")
     bids: Mapped[list[Bid]] = relationship(
