@@ -16,13 +16,14 @@ export function RegisterForm() {
     setError(null);
     setPending(true);
     const fd = new FormData(e.currentTarget);
+    const email = (fd.get("email") as string | null)?.trim() ?? "";
     try {
       const birthYearStr = fd.get("birth_year") as string | null;
       const res = await fetch("/api/auth/register", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: fd.get("email"),
+          email,
           password: fd.get("password"),
           first_name: (fd.get("first_name") as string | null)?.trim(),
           last_name: (fd.get("last_name") as string | null)?.trim(),
@@ -38,12 +39,15 @@ export function RegisterForm() {
         setError(data.detail ?? "Kayıt başarısız");
         return;
       }
-      // Yeni kullanıcı doğrudan ana sayfaya yönlendirilir — site vitrini
-      // (öne çıkan saatler + güven sütunları) lüks alışveriş hissiyatını
-      // sıfırdan koruyor; bonus olarak henüz e-postasını doğrulamamış
-      // kullanıcı login akışına geri girmek zorunda kalmasın diye giriş
-      // ekranı yerine ana sayfa.
-      router.push("/");
+      // Başarılı kayıt → "E-postanı doğrula" iniş sayfası. Ana sayfa yerine
+      // burada bekleriz; çünkü kullanıcı henüz e-posta linkine tıklamadı,
+      // login akışı bloklu (is_verified=False). Bu sayfa kayıt sonrasının
+      // "iş tamam, mailini kontrol et" mesajını şık ve davetkâr biçimde
+      // verir — login deneyip hata almasına gerek yok.
+      const target = email
+        ? `/check-email?email=${encodeURIComponent(email)}`
+        : "/check-email";
+      router.push(target);
       router.refresh();
     } catch {
       setError("Bağlantı hatası");
