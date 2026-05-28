@@ -65,7 +65,7 @@ function formatPrice(value: string): string {
  *  - Bekleyen müzayedeler: "Sunucu Ekranı" (ön izleme) + zaman gösterimi
  *  - Bitenler: arşivlenir, eylem yok
  *
- * "+ Yeni Showcase" sağ üstte sabit — presenter bir sonraki yayını planlar.
+ * "+ Yeni Yayın" sağ üstte sabit — presenter bir sonraki yayını planlar.
  */
 export default async function PresenterHubPage() {
   const showcases = await getMyShowcases();
@@ -81,12 +81,12 @@ export default async function PresenterHubPage() {
         <header className="mb-12 border-b border-line pb-6">
           <p className="eyebrow text-brass-dark">Sunucu Paneli</p>
           <div className="flex items-baseline justify-between gap-6 flex-wrap mt-3">
-            <h1 className="font-display text-4xl">Showcase'lerim</h1>
+            <h1 className="font-display text-4xl">Yayınlarım</h1>
             <Link
               href="/presenter/new"
               className="text-xs tracking-widest uppercase bg-charcoal text-ivory px-6 py-3 hover:bg-charcoal-700 transition-colors"
             >
-              + Yeni Showcase
+              + Yeni Yayın
             </Link>
           </div>
           <p className="mt-4 text-sm text-charcoal-500 max-w-2xl leading-relaxed">
@@ -117,7 +117,7 @@ export default async function PresenterHubPage() {
         {showcases.length === 0 && (
           <div className="py-24 text-center">
             <p className="eyebrow text-charcoal-300 mb-6">
-              Henüz showcase açmadın
+              Henüz yayın açmadın
             </p>
             <Link
               href="/presenter/new"

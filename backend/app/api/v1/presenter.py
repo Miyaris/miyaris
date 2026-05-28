@@ -94,11 +94,28 @@ async def list_showcases(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(pagination_dep),
 ):
-    """Bu presenter'ın açtığı tüm showcase'ler — hub sayfası besler."""
+    """Bu presenter'ın açtığı tüm yayınlar — hub sayfası besler."""
     auctions = await presenter_service.list_my_showcases(
         db, user, limit=pagination.limit, offset=pagination.offset
     )
     return [_to_list_item(a) for a in auctions]
+
+
+@router.get(
+    "/showcases/{auction_id}", response_model=PresenterShowcaseListItem
+)
+async def get_showcase(
+    auction_id: uuid.UUID,
+    user: User = Depends(get_current_presenter),
+    db: AsyncSession = Depends(get_db),
+):
+    """Tek yayın detayı — ownership doğrulanır.
+
+    Live sunucu ekranı (`/presenter/live/{id}`) bu endpoint'i kullanır.
+    Sahibi olmayan presenter erişirse 403; var olmayan id için 404.
+    """
+    auction = await presenter_service.get_my_showcase(db, auction_id, user)
+    return _to_list_item(auction)
 
 
 @router.post(

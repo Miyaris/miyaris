@@ -171,6 +171,21 @@ async def list_my_showcases(
     return list(result.scalars().unique().all())
 
 
+async def get_my_showcase(
+    db: AsyncSession,
+    auction_id: uuid.UUID,
+    user: User,
+) -> Auction:
+    """Presenter'ın kendi showcase'inin tek detayı.
+
+    Live page (`/presenter/live/{id}`) tarafından kullanılır — listenin
+    içinde UUID arama yerine direkt fetch + ownership doğrulama yapar,
+    böylece UUID büyük/küçük harf farkı veya sayfalama sınırı yüzünden
+    "bulunamadı" hatası vermez.
+    """
+    return await _get_owned_auction(db, auction_id, user)
+
+
 async def _get_owned_auction(
     db: AsyncSession,
     auction_id: uuid.UUID,

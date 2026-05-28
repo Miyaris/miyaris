@@ -24,15 +24,16 @@ export default async function PresenterLivePage({
 }: {
   params: { auctionId: string };
 }) {
-  let showcase: PresenterShowcase | undefined;
-  let initialBids: BidPublic[] = [];
+  let showcase: PresenterShowcase | null = null;
 
   try {
-    const showcases = await backendFetch<PresenterShowcase[]>(
-      "/api/v1/presenter/showcases?limit=200",
+    // Tek auction çekiyoruz — backend ownership doğrular, 403/404 burada
+    // notFound'a düşer. Liste içi arama yerine direkt fetch UUID büyük/
+    // küçük harf veya sayfalama sınırı problemlerini ortadan kaldırır.
+    showcase = await backendFetch<PresenterShowcase>(
+      `/api/v1/presenter/showcases/${params.auctionId}`,
       { authenticated: true },
     );
-    showcase = showcases.find((s) => s.auction_id === params.auctionId);
   } catch {
     notFound();
   }
@@ -40,6 +41,8 @@ export default async function PresenterLivePage({
   if (!showcase) {
     notFound();
   }
+
+  let initialBids: BidPublic[] = [];
 
   // Bid history public endpoint — ownership şart değil
   try {

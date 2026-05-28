@@ -166,7 +166,7 @@ export function NewShowcaseForm() {
       });
       const result = await res.json();
       if (!res.ok) {
-        setError(result.detail ?? "Showcase oluşturulamadı");
+        setError(result.detail ?? "Yayın oluşturulamadı");
         return;
       }
       const created = result as PresenterShowcase;

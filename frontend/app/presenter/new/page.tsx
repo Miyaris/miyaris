@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import { NewShowcaseForm } from "./NewShowcaseForm";
 
-export const metadata = { title: "Yeni Showcase" };
+export const metadata = { title: "Yeni Yayın" };
 
 export default function PresenterNewPage() {
   return (
