@@ -17,6 +17,7 @@ from app.models.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from app.models.bid import Bid
     from app.models.escrow import EscrowTransaction
+    from app.models.presenter_session import PresenterSession
     from app.models.watch import Watch
 
 
@@ -70,15 +71,26 @@ class Auction(Base, TimestampMixin):
     is_hidden: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
-    # Presenter (canlı müzayede sunucusu) tarafından açılan showcase — ana
-    # /auctions grid'inde gözükmez. Sunucu Instagram canlı yayını gibi dış
-    # kanaldan alıcı çeker, direkt /auctions/{id} linkini paylaşır. Detay
-    # sayfası direct link için açık kalır; sadece public listeden filtrelenir.
+    # DEPRECATED — eski flag, presenter_session_id zaman içinde yerini aldı.
+    # Migration ile DB kolonu hala var, ama servis kodu artık session FK'sini
+    # baz alıyor (NULL/SET ayrımı yeterli sinyal).
     is_presenter_auction: Mapped[bool] = mapped_column(
         Boolean, default=False, nullable=False, server_default="false"
     )
+    # Presenter (canlı müzayede sunucusu) tarafından açılan müzayedeler için
+    # parent oturum referansı. NULL = bağımsız (normal) müzayede; SET = bir
+    # presenter oturumunun lot'u (sırayla canlı yayınlanır, public /auctions
+    # grid'inde tek tek değil oturum kartı olarak görünür).
+    presenter_session_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("presenter_sessions.id", ondelete="SET NULL"),
+        index=True,
+    )
 
     watch: Mapped[Watch] = relationship(back_populates="auction", lazy="joined")
+    presenter_session: Mapped[PresenterSession | None] = relationship(
+        back_populates="lots", foreign_keys=[presenter_session_id]
+    )
     bids: Mapped[list[Bid]] = relationship(
         back_populates="auction",
         foreign_keys="Bid.auction_id",

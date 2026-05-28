@@ -158,7 +158,9 @@ async def list_auctions(
         select(Auction)
         .where(
             Auction.is_hidden == False,  # noqa: E712 — SQL boolean
-            Auction.is_presenter_auction == False,  # noqa: E712
+            # Presenter oturum lot'ları tek tek grid'de gözükmez — yalnızca
+            # oturum kartı `/auction-sessions` endpoint'iyle dönülür.
+            Auction.presenter_session_id.is_(None),
         )
         .options(selectinload(Auction.watch).selectinload(Watch.images))
         .order_by(Auction.ends_at.asc())

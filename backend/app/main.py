@@ -135,6 +135,8 @@ def create_app() -> FastAPI:
 
     # REST — presenter (canlı müzayede sunucu paneli) — is_presenter zorunlu
     app.include_router(presenter.router, prefix="/api/v1")
+    # Public — presenter oturumlarının halka açık listesi/detayı
+    app.include_router(presenter.public_router, prefix="/api/v1")
 
     # REST — servisler arası (X-Service-Key zorunlu)
     app.include_router(service.router, prefix="/api/v1")

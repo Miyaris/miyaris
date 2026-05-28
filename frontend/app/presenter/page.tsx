@@ -1,14 +1,20 @@
 import Link from "next/link";
 
 import { backendFetch } from "@/lib/api";
-import type { AuctionStatus, PresenterShowcase } from "@/lib/types";
+import type {
+  PresenterSessionListItem,
+  PresenterSessionStatus,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Sunucu Paneli" };
 
-const STATUS_LABEL: Record<AuctionStatus, { label: string; cls: string }> = {
-  scheduled: {
-    label: "Bekliyor",
+const STATUS_LABEL: Record<
+  PresenterSessionStatus,
+  { label: string; cls: string }
+> = {
+  planning: {
+    label: "Hazırlanıyor",
     cls: "border-charcoal/20 text-charcoal-700 bg-ivory-100",
   },
   live: {
@@ -19,20 +25,16 @@ const STATUS_LABEL: Record<AuctionStatus, { label: string; cls: string }> = {
     label: "Bitti",
     cls: "border-line text-charcoal-500 bg-ivory-200",
   },
-  completed: {
-    label: "Tamamlandı",
-    cls: "border-line text-charcoal-500 bg-ivory-200",
-  },
   cancelled: {
     label: "İptal",
     cls: "border-burgundy/30 text-burgundy bg-burgundy/10",
   },
 };
 
-async function getMyShowcases(): Promise<PresenterShowcase[]> {
+async function getMySessions(): Promise<PresenterSessionListItem[]> {
   try {
-    return await backendFetch<PresenterShowcase[]>(
-      "/api/v1/presenter/showcases?limit=100",
+    return await backendFetch<PresenterSessionListItem[]>(
+      "/api/v1/presenter/sessions?limit=100",
       { authenticated: true },
     );
   } catch {
@@ -47,32 +49,21 @@ function formatDateTime(iso: string): string {
   });
 }
 
-function formatPrice(value: string): string {
-  const num = Number(value);
-  if (Number.isNaN(num)) return value;
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(num);
-}
-
 /**
- * Presenter Hub — yetkili kullanıcının kendi planladığı tüm müzayedeler.
+ * Presenter Hub — yetkili kullanıcının açtığı tüm müzayede oturumları.
  *
- * Aksiyon haritası:
- *  - Canlı müzayedeler: "Sunucu Ekranı" → /presenter/live/[id]
- *  - Bekleyen müzayedeler: "Sunucu Ekranı" (ön izleme) + zaman gösterimi
- *  - Bitenler: arşivlenir, eylem yok
- *
- * "+ Yeni Yayın" sağ üstte sabit — presenter bir sonraki yayını planlar.
+ * Yapı:
+ *  - Canlı oturumlar üstte (varsa)
+ *  - Hazırlanan oturumlar (planlama fazında — saat eklemeye devam)
+ *  - Geçmiş oturumlar (bitti / iptal)
+ *  - "+ Yeni Oturum" sağ üstte sabit
  */
 export default async function PresenterHubPage() {
-  const showcases = await getMyShowcases();
-  const live = showcases.filter((s) => s.status === "live");
-  const upcoming = showcases.filter((s) => s.status === "scheduled");
-  const closed = showcases.filter(
-    (s) => s.status === "ended" || s.status === "completed",
+  const sessions = await getMySessions();
+  const live = sessions.filter((s) => s.status === "live");
+  const planning = sessions.filter((s) => s.status === "planning");
+  const closed = sessions.filter(
+    (s) => s.status === "ended" || s.status === "cancelled",
   );
 
   return (
@@ -81,49 +72,47 @@ export default async function PresenterHubPage() {
         <header className="mb-12 border-b border-line pb-6">
           <p className="eyebrow text-brass-dark">Sunucu Paneli</p>
           <div className="flex items-baseline justify-between gap-6 flex-wrap mt-3">
-            <h1 className="font-display text-4xl">Yayınlarım</h1>
+            <h1 className="font-display text-4xl">Oturumlarım</h1>
             <Link
               href="/presenter/new"
               className="text-xs tracking-widest uppercase bg-charcoal text-ivory px-6 py-3 hover:bg-charcoal-700 transition-colors"
             >
-              + Yeni Yayın
+              + Yeni Oturum
             </Link>
           </div>
           <p className="mt-4 text-sm text-charcoal-500 max-w-2xl leading-relaxed">
-            Kendi müzayedelerini buradan planla, canlı yayında sunucu ekranı
-            üzerinden yönet. Ekspertiz adımı atlanır — yetkili presenter olarak
-            ürünü doğrudan listeleyebilirsin.
+            Bir oturum aç, içine birden çok saat ekle, ardından canlı sunucu
+            ekranı üzerinden sırayla satış yap. Public sayfada oturumun adı
+            altında listelenir.
           </p>
         </header>
 
         {live.length > 0 && (
           <Section title="Canlı" tone="live">
-            <ShowcaseGrid items={live} />
+            <SessionGrid items={live} />
           </Section>
         )}
-
-        {upcoming.length > 0 && (
-          <Section title="Yaklaşan" tone="scheduled">
-            <ShowcaseGrid items={upcoming} />
+        {planning.length > 0 && (
+          <Section title="Hazırlanan" tone="planning">
+            <SessionGrid items={planning} />
           </Section>
         )}
-
         {closed.length > 0 && (
           <Section title="Geçmiş" tone="closed">
-            <ShowcaseGrid items={closed} muted />
+            <SessionGrid items={closed} muted />
           </Section>
         )}
 
-        {showcases.length === 0 && (
+        {sessions.length === 0 && (
           <div className="py-24 text-center">
             <p className="eyebrow text-charcoal-300 mb-6">
-              Henüz yayın açmadın
+              Henüz oturum açmadın
             </p>
             <Link
               href="/presenter/new"
               className="text-sm tracking-widest uppercase text-brass-dark border-b border-brass/40 pb-0.5 hover:text-brass"
             >
-              İlk müzayedeni planla →
+              İlk oturumunu aç →
             </Link>
           </div>
         )}
@@ -138,13 +127,13 @@ function Section({
   children,
 }: {
   title: string;
-  tone: "live" | "scheduled" | "closed";
+  tone: "live" | "planning" | "closed";
   children: React.ReactNode;
 }) {
   const dotCls =
     tone === "live"
       ? "bg-olive animate-pulse"
-      : tone === "scheduled"
+      : tone === "planning"
         ? "bg-brass"
         : "bg-charcoal-300";
   return (
@@ -158,32 +147,32 @@ function Section({
   );
 }
 
-function ShowcaseGrid({
+function SessionGrid({
   items,
   muted = false,
 }: {
-  items: PresenterShowcase[];
+  items: PresenterSessionListItem[];
   muted?: boolean;
 }) {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {items.map((s) => (
-        <ShowcaseCard key={s.auction_id} showcase={s} muted={muted} />
+        <SessionCard key={s.id} session={s} muted={muted} />
       ))}
     </div>
   );
 }
 
-function ShowcaseCard({
-  showcase: s,
+function SessionCard({
+  session: s,
   muted,
 }: {
-  showcase: PresenterShowcase;
+  session: PresenterSessionListItem;
   muted: boolean;
 }) {
   const badge = STATUS_LABEL[s.status];
   const isLive = s.status === "live";
-  const isPlayable = s.status === "live" || s.status === "scheduled";
+  const isOpenable = s.status === "live" || s.status === "planning";
 
   return (
     <article
@@ -192,11 +181,11 @@ function ShowcaseCard({
       }`}
     >
       <div className="aspect-[4/3] bg-ivory-200 overflow-hidden">
-        {s.primary_image_url ? (
+        {s.cover_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
-            src={s.primary_image_url}
-            alt={`${s.brand} ${s.model}`}
+            src={s.cover_image_url}
+            alt={s.name}
             className="w-full h-full object-cover"
           />
         ) : null}
@@ -204,11 +193,9 @@ function ShowcaseCard({
       <div className="p-5">
         <div className="flex items-start justify-between gap-3 mb-3">
           <div className="min-w-0">
-            <p className="font-display text-lg truncate">
-              {s.brand} {s.model}
-            </p>
-            <p className="text-[10px] tracking-widest uppercase text-charcoal-300 tabular-nums">
-              Ref. {s.reference_number}
+            <p className="font-display text-lg truncate">{s.name}</p>
+            <p className="text-[10px] tracking-widest uppercase text-charcoal-300 mt-1 tabular-nums">
+              {s.lot_count} saat · {formatDateTime(s.scheduled_at)}
             </p>
           </div>
           <span
@@ -218,42 +205,29 @@ function ShowcaseCard({
           </span>
         </div>
 
-        <dl className="text-xs grid grid-cols-2 gap-2 mb-4 tabular-nums">
-          <div>
-            <dt className="text-charcoal-300 tracking-widest uppercase">
-              Mevcut
-            </dt>
-            <dd className="text-charcoal text-base">
-              {formatPrice(s.current_price)}
-            </dd>
-          </div>
-          <div>
-            <dt className="text-charcoal-300 tracking-widest uppercase">
-              Teklif
-            </dt>
-            <dd className="text-charcoal text-base">{s.bid_count}</dd>
-          </div>
-          <div className="col-span-2">
-            <dt className="text-charcoal-300 tracking-widest uppercase">
-              {isLive ? "Biter" : "Başlar"}
-            </dt>
-            <dd className="text-charcoal-700">
-              {formatDateTime(isLive ? s.ends_at : s.starts_at)}
-            </dd>
-          </div>
-        </dl>
+        {s.description && (
+          <p className="text-xs text-charcoal-500 mb-4 line-clamp-2 leading-relaxed">
+            {s.description}
+          </p>
+        )}
 
-        {isPlayable && (
-          <Link
-            href={`/presenter/live/${s.auction_id}`}
-            className={`block w-full text-center text-xs tracking-widest uppercase py-3 transition-colors ${
-              isLive
-                ? "bg-olive text-ivory hover:bg-olive/90"
-                : "bg-charcoal text-ivory hover:bg-charcoal-700"
-            }`}
-          >
-            {isLive ? "Sunucu Ekranını Aç" : "Hazırlık Ekranı"}
-          </Link>
+        {isOpenable && (
+          <div className="flex gap-2">
+            <Link
+              href={`/presenter/sessions/${s.id}`}
+              className="flex-1 text-center text-xs tracking-widest uppercase border border-charcoal text-charcoal-700 py-2.5 hover:bg-charcoal hover:text-ivory transition-colors"
+            >
+              {isLive ? "Yönet" : "Detay"}
+            </Link>
+            {isLive && (
+              <Link
+                href={`/presenter/sessions/${s.id}/live`}
+                className="flex-1 text-center text-xs tracking-widest uppercase bg-olive text-ivory py-2.5 hover:bg-olive/90"
+              >
+                Sunucu Ekranı
+              </Link>
+            )}
+          </div>
         )}
       </div>
     </article>

@@ -2,10 +2,6 @@ import { NextResponse } from "next/server";
 
 import { ApiError, backendFetch } from "@/lib/api";
 
-/**
- * Presenter: müzayedeye +saniye ekle.
- * Body: { seconds?: number } — default 30.
- */
 export async function POST(
   request: Request,
   { params }: { params: { id: string } },
@@ -14,17 +10,15 @@ export async function POST(
   try {
     body = await request.json();
   } catch {
-    // Body opsiyonel — boş gövde geçerli
+    // Body opsiyonel
   }
-
   const seconds =
     typeof body.seconds === "number" && body.seconds > 0
       ? Math.min(600, Math.floor(body.seconds))
       : 30;
-
   try {
     const result = await backendFetch(
-      `/api/v1/presenter/showcases/${params.id}/extend`,
+      `/api/v1/presenter/sessions/${params.id}/extend`,
       {
         method: "POST",
         authenticated: true,

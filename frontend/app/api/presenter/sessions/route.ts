@@ -2,10 +2,7 @@ import { NextResponse } from "next/server";
 
 import { ApiError, backendFetch } from "@/lib/api";
 
-/**
- * Presenter: yeni showcase (saat + müzayede tek transaction).
- * Body: PresenterShowcaseCreatePayload — backend `PresenterShowcaseCreate`.
- */
+/** POST — yeni oturum oluştur. */
 export async function POST(request: Request) {
   let body: unknown;
   try {
@@ -16,9 +13,8 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
-
   try {
-    const result = await backendFetch("/api/v1/presenter/showcases", {
+    const result = await backendFetch("/api/v1/presenter/sessions", {
       method: "POST",
       authenticated: true,
       body: JSON.stringify(body),

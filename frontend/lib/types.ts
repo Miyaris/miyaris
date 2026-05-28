@@ -144,10 +144,27 @@ export interface AuctionPublic {
   bid_count: number;
 }
 
-// === Presenter (canlı müzayede sunucusu) ===
-// Backend `PresenterShowcaseListItem` ile birebir.
+// === Presenter Müzayede Oturumu ===
+// Backend `PresenterSession*` DTO'ları ile birebir.
 
-export interface PresenterShowcase {
+export type PresenterSessionStatus =
+  | "planning"
+  | "live"
+  | "ended"
+  | "cancelled";
+
+export interface PresenterSessionListItem {
+  id: string;
+  name: string;
+  description: string | null;
+  scheduled_at: string;
+  status: PresenterSessionStatus;
+  is_hidden: boolean;
+  lot_count: number;
+  cover_image_url: string | null;
+}
+
+export interface PresenterLotListItem {
   auction_id: string;
   watch_id: string;
   brand: string;
@@ -157,15 +174,50 @@ export interface PresenterShowcase {
   starting_price: string;
   current_price: string;
   buy_it_now_price: string | null;
-  starts_at: string;
-  ends_at: string;
-  extended_until: string | null;
   status: AuctionStatus;
   bid_count: number;
 }
 
-/** POST /api/presenter/showcases body — backend `PresenterShowcaseCreate`. */
-export interface PresenterShowcaseCreatePayload {
+export interface PresenterSessionDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  scheduled_at: string;
+  status: PresenterSessionStatus;
+  is_hidden: boolean;
+  presenter_name: string;
+  lots: PresenterLotListItem[];
+}
+
+export interface PublicSessionListItem {
+  id: string;
+  name: string;
+  scheduled_at: string;
+  status: PresenterSessionStatus;
+  presenter_name: string;
+  lot_count: number;
+  cover_image_url: string | null;
+}
+
+export interface PublicSessionDetail {
+  id: string;
+  name: string;
+  description: string | null;
+  scheduled_at: string;
+  status: PresenterSessionStatus;
+  presenter_name: string;
+  lots: PresenterLotListItem[];
+}
+
+/** POST /api/presenter/sessions body. */
+export interface PresenterSessionCreatePayload {
+  name: string;
+  scheduled_at: string; // ISO 8601 + tz offset
+  description?: string | null;
+}
+
+/** POST /api/presenter/sessions/{id}/lots body. */
+export interface PresenterLotCreatePayload {
   brand: string;
   model: string;
   reference_number: string;
@@ -175,8 +227,6 @@ export interface PresenterShowcaseCreatePayload {
   serial_number?: string | null;
   box_papers: boolean;
   image_urls: string[];
-  starts_at: string; // ISO 8601 + tz offset
-  duration_minutes: number;
   starting_price: string;
   min_bid_increment?: string;
   reserve_price?: string | null;

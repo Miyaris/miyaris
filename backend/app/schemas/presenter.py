@@ -1,14 +1,11 @@
-"""Presenter (canlı müzayede sunucusu) DTO'ları.
+"""Presenter (canlı müzayede sunucusu) DTO'ları — oturum modeli.
 
-Presenter yetkili kullanıcı kendi showcase'ini doğrudan oluşturur: aynı
-formda hem saatin bilgileri hem müzayede penceresi (custom datetime + süre)
-yer alır. Bu akış normal satıcı akışından farklıdır:
-
-  * Sertifika/moderasyon adımı YOK — presenter zaten yetkilendirilmiş kabul
-    edilir, ürünü direkt ACTIVE statüsünde listelenir.
-  * AI valuation pipeline tetiklenmez (ai_processing_status=NONE).
-  * Müzayede saatleri haftalık çark ile sınırlı değildir — kullanıcı kendi
-    canlı yayını için spesifik tarih+saat girer.
+Yeni mental model:
+  * Presenter bir OTURUM açar (PresenterSession): ad, başlangıç saati,
+    açıklama.
+  * Oturuma bir veya daha çok SAAT LOT'u ekler (Watch + Auction birleşik).
+  * Saatler oturum içinde sırayla canlı yayınlanır — bir lot biter, sıradaki
+    LIVE'a geçer. Public /auctions sayfası oturumu tek kart olarak gösterir.
 """
 from __future__ import annotations
 
@@ -27,17 +24,51 @@ from pydantic import (
 )
 
 from app.models.auction import AuctionStatus
+from app.models.presenter_session import PresenterSessionStatus
 from app.models.watch import WatchCondition
 
 
-class PresenterShowcaseCreate(BaseModel):
-    """Yeni canlı müzayede showcase'i — saat + müzayede bilgileri birleşik.
+# ============================================================================
+# Oturum (Session) DTO'ları
+# ============================================================================
 
-    Frontend formundan tek POST ile gönderilir; backend tek transaction'da
-    önce Watch (ACTIVE statüde), sonra Auction (SCHEDULED) oluşturur.
+
+class PresenterSessionCreate(BaseModel):
+    """Yeni oturum oluşturma payload'u.
+
+    Saat eklemesi ayrı endpoint'le yapılır (add-lot).
     """
 
-    # ----- Saat bilgileri ----------------------------------------------------
+    name: str = Field(min_length=3, max_length=160)
+    scheduled_at: datetime
+    description: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, v: str) -> str:
+        v = v.strip()
+        if not v:
+            raise ValueError("Oturum adı boş olamaz")
+        return v
+
+    @model_validator(mode="after")
+    def _validate_tz(self):
+        if self.scheduled_at.tzinfo is None:
+            raise ValueError(
+                "scheduled_at için saat dilimi belirtilmeli (ISO 8601 + offset)"
+            )
+        return self
+
+
+class PresenterLotCreate(BaseModel):
+    """Mevcut bir oturuma saat lot'u ekleme payload'u.
+
+    Watch alanları + auction taban parametreleri tek POST'ta. starts_at/ends_at
+    burada YOK — lot'lar oturum içinde canlı sıralanır, ayrı zaman penceresi
+    tutmaz. Süre presenter ekranından canlıda yönetilir.
+    """
+
+    # Saat bilgileri
     brand: str = Field(min_length=1, max_length=80)
     model: str = Field(min_length=1, max_length=120)
     reference_number: str = Field(min_length=1, max_length=60)
@@ -47,11 +78,7 @@ class PresenterShowcaseCreate(BaseModel):
     serial_number: str | None = Field(default=None, max_length=80)
     box_papers: bool = False
     image_urls: list[HttpUrl] = Field(min_length=1, max_length=12)
-
-    # ----- Müzayede penceresi ------------------------------------------------
-    # Presenter takvimden tarih+saat seçer; süre dakikadır.
-    starts_at: datetime
-    duration_minutes: int = Field(ge=5, le=240, default=30)
+    # Müzayede taban parametreleri
     starting_price: Decimal = Field(gt=0, decimal_places=2)
     min_bid_increment: Decimal = Field(
         default=Decimal("50"), gt=0, decimal_places=2
@@ -89,19 +116,9 @@ class PresenterShowcaseCreate(BaseModel):
             raise ValueError("buy_it_now_price > starting_price olmalı")
         return self
 
-    @model_validator(mode="after")
-    def _validate_timezone(self):
-        # Frontend ISO 8601 + offset göndermeli; tz'siz datetime'ları
-        # reddederek silent UTC-assumption hatalarını engelliyoruz.
-        if self.starts_at.tzinfo is None:
-            raise ValueError(
-                "starts_at için saat dilimi belirtilmeli (ISO 8601 + offset)"
-            )
-        return self
 
-
-class PresenterShowcaseListItem(BaseModel):
-    """Presenter'ın hub sayfasındaki kendi showcase listesi için DTO."""
+class PresenterLotListItem(BaseModel):
+    """Oturum içindeki bir saat lot'unun DTO'su."""
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -114,8 +131,68 @@ class PresenterShowcaseListItem(BaseModel):
     starting_price: Decimal
     current_price: Decimal
     buy_it_now_price: Decimal | None = None
-    starts_at: datetime
-    ends_at: datetime
-    extended_until: datetime | None = None
     status: AuctionStatus
     bid_count: int = 0
+
+
+class PresenterSessionListItem(BaseModel):
+    """Hub'da gözüken oturum kartı için kompakt DTO."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    description: str | None = None
+    scheduled_at: datetime
+    status: PresenterSessionStatus
+    is_hidden: bool = False
+    lot_count: int = 0
+    cover_image_url: str | None = None
+
+
+class PresenterSessionDetail(BaseModel):
+    """Tam detay: oturum meta + içerideki lot'lar."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    description: str | None = None
+    scheduled_at: datetime
+    status: PresenterSessionStatus
+    is_hidden: bool = False
+    presenter_name: str
+    lots: list[PresenterLotListItem]
+
+
+# ============================================================================
+# Public DTO'ları (sıradan kullanıcı için)
+# ============================================================================
+
+
+class PublicSessionListItem(BaseModel):
+    """/auctions grid'inde gözüken oturum kartı."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    scheduled_at: datetime
+    status: PresenterSessionStatus
+    presenter_name: str
+    lot_count: int
+    cover_image_url: str | None = None
+
+
+class PublicSessionDetail(BaseModel):
+    """Public oturum detay — kullanıcı kartı tıklayınca açılan sayfa."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    name: str
+    description: str | None = None
+    scheduled_at: datetime
+    status: PresenterSessionStatus
+    presenter_name: str
+    lots: list[PresenterLotListItem]

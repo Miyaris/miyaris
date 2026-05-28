@@ -1,7 +1,13 @@
+import Link from "next/link";
+
 import { AuctionGrid } from "@/components/auctions/AuctionGrid";
 import { Container } from "@/components/shared/Container";
 import { backendFetch } from "@/lib/api";
-import type { AuctionListItem, AuctionStatus } from "@/lib/types";
+import type {
+  AuctionListItem,
+  AuctionStatus,
+  PublicSessionListItem,
+} from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
@@ -55,12 +61,32 @@ async function getAuctions(params: SearchParams): Promise<AuctionListItem[]> {
   }
 }
 
+async function getPresenterSessions(): Promise<PublicSessionListItem[]> {
+  try {
+    return await backendFetch<PublicSessionListItem[]>(
+      "/api/v1/auction-sessions?limit=30",
+    );
+  } catch {
+    return [];
+  }
+}
+
+function formatDateTime(iso: string): string {
+  return new Date(iso).toLocaleString("tr-TR", {
+    dateStyle: "medium",
+    timeStyle: "short",
+  });
+}
+
 export default async function AuctionsPage({
   searchParams,
 }: {
   searchParams: SearchParams;
 }) {
-  const auctions = await getAuctions(searchParams);
+  const [auctions, sessions] = await Promise.all([
+    getAuctions(searchParams),
+    getPresenterSessions(),
+  ]);
   const activeStatus = searchParams.status ?? "all";
 
   return (
@@ -73,6 +99,23 @@ export default async function AuctionsPage({
           artırmaları. Pazartesi başlar, Pazar akşamı kapanır.
         </p>
       </header>
+
+      {/* Presenter müzayede oturumları — varsa ayrı bölüm */}
+      {sessions.length > 0 && (
+        <section className="mb-16">
+          <div className="flex items-baseline justify-between mb-6">
+            <h2 className="eyebrow text-brass-dark">Canlı Sunucu Müzayedeleri</h2>
+            <p className="text-xs text-charcoal-300 tabular-nums">
+              {sessions.length} oturum
+            </p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {sessions.map((s) => (
+              <SessionCard key={s.id} session={s} />
+            ))}
+          </div>
+        </section>
+      )}
 
       <div className="flex flex-wrap items-center gap-2 mb-12 border-b border-line pb-6">
         {FILTERS.map((f) => {
@@ -97,5 +140,41 @@ export default async function AuctionsPage({
 
       <AuctionGrid auctions={auctions} />
     </Container>
+  );
+}
+
+function SessionCard({ session: s }: { session: PublicSessionListItem }) {
+  const isLive = s.status === "live";
+  return (
+    <Link
+      href={`/auctions/sessions/${s.id}`}
+      className="block border border-line bg-white hover:shadow-sm transition-shadow group"
+    >
+      <div className="aspect-[4/3] bg-ivory-200 overflow-hidden relative">
+        {s.cover_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={s.cover_image_url}
+            alt={s.name}
+            className="w-full h-full object-cover group-hover:scale-[1.02] transition-transform"
+          />
+        ) : null}
+        {isLive && (
+          <span className="absolute top-3 left-3 inline-flex items-center gap-2 px-3 py-1 bg-olive text-ivory text-[10px] tracking-widest uppercase">
+            <span className="w-1.5 h-1.5 rounded-full bg-ivory animate-pulse" />
+            Canlı
+          </span>
+        )}
+      </div>
+      <div className="p-5">
+        <p className="font-display text-xl truncate">{s.name}</p>
+        <p className="text-xs text-charcoal-500 mt-1">
+          Sunucu: {s.presenter_name}
+        </p>
+        <p className="text-[10px] tracking-widest uppercase text-charcoal-300 tabular-nums mt-3">
+          {s.lot_count} saat · {formatDateTime(s.scheduled_at)}
+        </p>
+      </div>
+    </Link>
   );
 }
