@@ -173,9 +173,16 @@ async def create_session_endpoint(
     user: User = Depends(get_current_presenter),
     db: AsyncSession = Depends(get_db),
 ):
-    """Yeni oturum aç (PLANNING)."""
+    """Yeni oturum aç (PLANNING).
+
+    NOT: Service `create_session` commit + refresh yapar fakat `lots`
+    ilişkisini eager-load etmez. DTO `_session_to_list_item` `session.lots`
+    erişimi yaptığı için async context'te lazy-load `MissingGreenlet`
+    hatası atar. Çözüm: `get_my_session` ile selectinload'lu yeniden
+    çekmek (diğer endpoint'ler de bu pattern'i kullanıyor).
+    """
     session = await presenter_service.create_session(db, user, payload)
-    # Lots boş — re-fetch'e gerek yok, list item DTO'su nesneyi kabul eder.
+    session = await presenter_service.get_my_session(db, session.id, user)
     return _session_to_list_item(session)
 
 
