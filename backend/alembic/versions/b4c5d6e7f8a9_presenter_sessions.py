@@ -6,13 +6,22 @@ Create Date: 2026-05-27 22:00:00.000000
 
 Presenter müzayede oturum modelini DB'ye taşır:
   * presenter_sessions tablosu
-  * presenter_session_status enum (planning/live/ended/cancelled)
+  * presenter_session_status enum
   * auctions.presenter_session_id FK (nullable, indexed, ON DELETE SET NULL)
 
-Tüm DDL raw SQL ile yazıldı — SQLAlchemy'nin `before_create` event'i devreye
-girip enum'u ikinci kez yaratmaya çalışmasın. Eski başarısız deploy'lardan
-kalan kısmî state (enum var ama tablo yok vs.) için tüm operasyonlar
-`IF NOT EXISTS` / `EXCEPTION duplicate_object` ile idempotent.
+ENUM DEĞERLERİ: Mevcut codebase'de tüm Postgres enum'ları Python enum
+`.name` ile (UPPERCASE) yaratılmış (initial migration'da `BUYER`, `SELLER`,
+`DRAFT` vb.). SQLAlchemy default davranışı SAEnum bağlarken `.name`
+kullanmak — bu yüzden enum DB'de de UPPERCASE olmalı:
+PLANNING / LIVE / ENDED / CANCELLED.
+
+ÖNCEKİ HATA: Bu migration'ın ilk sürümü lowercase değerler ile enum
+yaratmıştı (`planning, live, ...`), ama SAEnum sürdüğünde `'PLANNING'`
+yazdı → `invalid input value for enum` hatası.
+
+ÖNCEKİ STATE TEMİZLİĞİ: Hatalı enum mevcut DB'de kalmış olabilir. Tablo
+hiç başarıyla insert almamış olduğu için DROP'lamak güvenli. Migration
+DROP IF EXISTS ile başlar, sonra UPPERCASE ile yeniden yaratır.
 """
 from typing import Sequence, Union
 
@@ -26,28 +35,33 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    # 1) Enum tipi — idempotent. Önceki başarısız deploy oluşturmuş olabilir.
+    # 1) Hatalı önceki state'i temizle — enum ve tablo lowercase ile
+    #    yaratılmış olabilir, hiç başarılı insert almadığı için drop güvenli.
+    op.execute("DROP INDEX IF EXISTS ix_auctions_presenter_session_id;")
+    op.execute(
+        "ALTER TABLE auctions DROP COLUMN IF EXISTS presenter_session_id;"
+    )
+    op.execute("DROP TABLE IF EXISTS presenter_sessions CASCADE;")
+    op.execute("DROP TYPE IF EXISTS presenter_session_status;")
+
+    # 2) Enum tipi — UPPERCASE (SAEnum default .name davranışıyla uyumlu)
     op.execute(
         """
-        DO $$ BEGIN
-            CREATE TYPE presenter_session_status
-                AS ENUM ('planning', 'live', 'ended', 'cancelled');
-        EXCEPTION
-            WHEN duplicate_object THEN null;
-        END $$;
+        CREATE TYPE presenter_session_status
+            AS ENUM ('PLANNING', 'LIVE', 'ENDED', 'CANCELLED');
         """
     )
 
-    # 2) presenter_sessions tablosu — IF NOT EXISTS ile idempotent.
+    # 3) presenter_sessions tablosu
     op.execute(
         """
-        CREATE TABLE IF NOT EXISTS presenter_sessions (
+        CREATE TABLE presenter_sessions (
             id UUID PRIMARY KEY,
             presenter_id UUID NOT NULL REFERENCES users(id) ON DELETE RESTRICT,
             name VARCHAR(160) NOT NULL,
             description TEXT,
             scheduled_at TIMESTAMP WITH TIME ZONE NOT NULL,
-            status presenter_session_status NOT NULL DEFAULT 'planning',
+            status presenter_session_status NOT NULL DEFAULT 'PLANNING',
             is_hidden BOOLEAN NOT NULL DEFAULT FALSE,
             created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW(),
             updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT NOW()
@@ -55,37 +69,25 @@ def upgrade() -> None:
         """
     )
     op.execute(
-        """
-        CREATE INDEX IF NOT EXISTS ix_presenter_sessions_presenter_id
-            ON presenter_sessions(presenter_id);
-        """
+        "CREATE INDEX ix_presenter_sessions_presenter_id ON presenter_sessions(presenter_id);"
     )
     op.execute(
-        """
-        CREATE INDEX IF NOT EXISTS ix_presenter_sessions_scheduled_at
-            ON presenter_sessions(scheduled_at);
-        """
+        "CREATE INDEX ix_presenter_sessions_scheduled_at ON presenter_sessions(scheduled_at);"
     )
     op.execute(
-        """
-        CREATE INDEX IF NOT EXISTS ix_presenter_sessions_status
-            ON presenter_sessions(status);
-        """
+        "CREATE INDEX ix_presenter_sessions_status ON presenter_sessions(status);"
     )
 
-    # 3) Auction.presenter_session_id FK — idempotent kolon + index.
+    # 4) Auction.presenter_session_id FK
     op.execute(
         """
         ALTER TABLE auctions
-        ADD COLUMN IF NOT EXISTS presenter_session_id UUID
+        ADD COLUMN presenter_session_id UUID
             REFERENCES presenter_sessions(id) ON DELETE SET NULL;
         """
     )
     op.execute(
-        """
-        CREATE INDEX IF NOT EXISTS ix_auctions_presenter_session_id
-            ON auctions(presenter_session_id);
-        """
+        "CREATE INDEX ix_auctions_presenter_session_id ON auctions(presenter_session_id);"
     )
 
 
@@ -94,5 +96,5 @@ def downgrade() -> None:
     op.execute(
         "ALTER TABLE auctions DROP COLUMN IF EXISTS presenter_session_id;"
     )
-    op.execute("DROP TABLE IF EXISTS presenter_sessions;")
+    op.execute("DROP TABLE IF EXISTS presenter_sessions CASCADE;")
     op.execute("DROP TYPE IF EXISTS presenter_session_status;")
