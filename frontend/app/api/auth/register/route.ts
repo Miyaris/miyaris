@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
 
 import { ApiError, backendFetch } from "@/lib/api";
-import { setSessionCookies, type TokenPair } from "@/lib/session";
-import type { UserPublic } from "@/lib/types";
 
-interface RegisterPayload {
-  email: string;
-  password: string;
-  full_name: string;
-  phone?: string | null;
-}
-
+/**
+ * Kayıt proxy — sadece backend'e POST forward. **Otomatik login YAPMA**:
+ * kullanıcı henüz e-posta doğrulamamış (is_verified=false), backend login
+ * isteğini reddeder ve hata kayıt başarısız gibi görünür. Onun yerine
+ * frontend başarılı kayıttan sonra `/check-email` sayfasına yönlendirir;
+ * kullanıcı maildeki linke tıklayınca is_verified=true olur, ardından
+ * normal login akışı işler.
+ *
+ * Body: backend `UserCreate` ile aynı — first_name, last_name, birth_year,
+ * email, password, phone, tc_kimlik_no, mersis_no.
+ */
 export async function POST(request: Request) {
-  let payload: RegisterPayload;
+  let payload: unknown;
   try {
     payload = await request.json();
   } catch {
@@ -20,22 +22,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    // 1. Hesabı oluştur
-    await backendFetch<UserPublic>("/api/v1/auth/register", {
+    const user = await backendFetch("/api/v1/auth/register", {
       method: "POST",
       body: JSON.stringify(payload),
     });
-
-    // 2. Hemen otomatik giriş yap — kayıt → login akışı pürüzsüz olsun
-    const tokens = await backendFetch<TokenPair>("/api/v1/auth/login", {
-      method: "POST",
-      body: JSON.stringify({
-        email: payload.email,
-        password: payload.password,
-      }),
-    });
-    setSessionCookies(tokens);
-    return NextResponse.json({ ok: true });
+    return NextResponse.json(user, { status: 201 });
   } catch (e) {
     if (e instanceof ApiError) {
       return NextResponse.json({ detail: e.message }, { status: e.status });
