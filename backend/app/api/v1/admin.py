@@ -15,6 +15,7 @@ from app.models.escrow import EscrowStatus, EscrowTransaction
 from app.schemas.admin import (
     AdminAuctionListItem,
     AdminKycSetRequest,
+    AdminPresenterSessionListItem,
     AdminPresenterSetRequest,
     AdminSellerInfo,
     AdminUserListItem,
@@ -27,7 +28,12 @@ from app.schemas.admin import (
 )
 from app.schemas.escrow import EscrowDetail, EscrowListItem
 from app.schemas.watch import AIValuationOut
-from app.services import auction_service, escrow_service, moderation_service
+from app.services import (
+    auction_service,
+    escrow_service,
+    moderation_service,
+    presenter_service,
+)
 from app.utils.exceptions import NotFoundError
 from app.utils.pagination import PaginationParams, pagination_dep
 
@@ -511,3 +517,105 @@ async def admin_cancel_auction(
     iptal edilebilir. ENDED/COMPLETED bloklanır."""
     auction = await auction_service.admin_cancel(db, auction_id)
     return _auction_list_item(auction)
+
+
+# ----- Presenter Oturumları (ADMIN + EXPERT) ---------------------------------
+
+
+def _session_to_admin_item(session) -> AdminPresenterSessionListItem:
+    cover: str | None = None
+    for lot in session.lots or []:
+        images = lot.watch.images if lot.watch else []
+        if images:
+            cover = next((i.url for i in images if i.is_primary), None) or (
+                images[0].url if images else None
+            )
+            if cover:
+                break
+    return AdminPresenterSessionListItem(
+        id=session.id,
+        presenter_name=session.presenter.full_name,
+        presenter_email=session.presenter.email,
+        name=session.name,
+        description=session.description,
+        scheduled_at=session.scheduled_at,
+        status=session.status.value,
+        is_hidden=session.is_hidden,
+        lot_count=len(session.lots) if session.lots else 0,
+        cover_image_url=cover,
+    )
+
+
+@router.get(
+    "/sessions", response_model=list[AdminPresenterSessionListItem]
+)
+async def list_admin_sessions(
+    tab: str = "active",
+    db: AsyncSession = Depends(get_db),
+    pagination: PaginationParams = Depends(pagination_dep),
+):
+    """Presenter oturumları — sekmeli liste.
+
+    Query `tab`: active (PLANNING + LIVE) | past (ENDED + CANCELLED) | hidden
+    """
+    if tab not in ("active", "past", "hidden"):
+        from fastapi import status as http_status
+
+        from app.utils.exceptions import APIError
+
+        raise APIError(
+            status_code=http_status.HTTP_400_BAD_REQUEST,
+            detail="Geçersiz tab — active/past/hidden olmalı",
+        )
+    sessions = await presenter_service.admin_list_sessions(
+        db, tab=tab, limit=pagination.limit, offset=pagination.offset
+    )
+    # lots->watch->images eager-load ihtiyacı için her oturumu DTO'ya geçerken
+    # service zaten lots'u selectin yüklüyor; images için ayrıca fetch lazım.
+    # Performans gerekirse public list_public_sessions pattern'i taklit
+    # edilebilir; MVP için yeterli.
+    return [_session_to_admin_item(s) for s in sessions]
+
+
+@router.post(
+    "/sessions/{session_id}/hide",
+    response_model=AdminPresenterSessionListItem,
+)
+async def hide_session(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Oturumu public sayfadan gizle. Lot'lar etkilenmez."""
+    session = await presenter_service.admin_set_session_hidden(
+        db, session_id, True
+    )
+    return _session_to_admin_item(session)
+
+
+@router.post(
+    "/sessions/{session_id}/unhide",
+    response_model=AdminPresenterSessionListItem,
+)
+async def unhide_session(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Gizlenmiş oturumu geri getir."""
+    session = await presenter_service.admin_set_session_hidden(
+        db, session_id, False
+    )
+    return _session_to_admin_item(session)
+
+
+@router.post(
+    "/sessions/{session_id}/cancel",
+    response_model=AdminPresenterSessionListItem,
+)
+async def cancel_session_endpoint(
+    session_id: uuid.UUID,
+    db: AsyncSession = Depends(get_db),
+):
+    """Oturumu iptal et. Mevcut LIVE lot ENDED'a çekilir, SCHEDULED'lar
+    CANCELLED'a. Presenter o oturumu artık kullanamaz."""
+    session = await presenter_service.admin_cancel_session(db, session_id)
+    return _session_to_admin_item(session)

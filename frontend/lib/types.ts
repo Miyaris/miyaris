@@ -147,6 +147,20 @@ export interface AuctionPublic {
 // === Presenter Müzayede Oturumu ===
 // Backend `PresenterSession*` DTO'ları ile birebir.
 
+/** Admin paneli için presenter oturum kartı (presenter kimlik bilgisi dahil). */
+export interface AdminPresenterSessionListItem {
+  id: string;
+  presenter_name: string;
+  presenter_email: string;
+  name: string;
+  description: string | null;
+  scheduled_at: string;
+  status: string;
+  is_hidden: boolean;
+  lot_count: number;
+  cover_image_url: string | null;
+}
+
 export type PresenterSessionStatus =
   | "planning"
   | "live"

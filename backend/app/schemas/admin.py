@@ -152,6 +152,27 @@ class AdminPresenterSetRequest(BaseModel):
 # ----- Müzayede yönetimi ------------------------------------------------------
 
 
+class AdminPresenterSessionListItem(BaseModel):
+    """Admin paneli — presenter oturum kartı.
+
+    PresenterSessionListItem'a göre ek olarak `presenter_name` ve
+    `presenter_email` — admin kimin oturumu olduğunu görebilsin.
+    """
+
+    model_config = ConfigDict(from_attributes=True)
+
+    id: uuid.UUID
+    presenter_name: str
+    presenter_email: EmailStr
+    name: str
+    description: str | None = None
+    scheduled_at: datetime
+    status: str
+    is_hidden: bool = False
+    lot_count: int = 0
+    cover_image_url: str | None = None
+
+
 class AdminAuctionListItem(BaseModel):
     """Admin paneli için müzayede tablosu satırı.
 

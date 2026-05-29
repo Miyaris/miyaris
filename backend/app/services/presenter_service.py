@@ -466,3 +466,136 @@ async def get_public_session(
     if session is None or session.is_hidden:
         raise NotFoundError("Oturum bulunamadı")
     return session
+
+
+# ============================================================================
+# Admin — presenter oturumlarına override
+# ============================================================================
+
+
+async def admin_list_sessions(
+    db: AsyncSession,
+    tab: str = "active",
+    limit: int = 50,
+    offset: int = 0,
+) -> list[PresenterSession]:
+    """Admin paneli — sekmeli oturum listesi (presenter kim olursa olsun).
+
+    tab değerleri:
+      * "active"  → PLANNING + LIVE, is_hidden=False (en yeni planlanmış üstte)
+      * "past"    → ENDED + CANCELLED, is_hidden=False (en yeni bitmiş üstte)
+      * "hidden"  → tüm statüler, is_hidden=True
+    """
+    base = select(PresenterSession).options(
+        selectinload(PresenterSession.lots)
+        .selectinload(Auction.watch)
+        .selectinload(Watch.images),
+        selectinload(PresenterSession.presenter),
+    )
+    if tab == "active":
+        stmt = (
+            base.where(
+                PresenterSession.is_hidden == False,  # noqa: E712
+                PresenterSession.status.in_(
+                    (
+                        PresenterSessionStatus.PLANNING,
+                        PresenterSessionStatus.LIVE,
+                    )
+                ),
+            )
+            .order_by(PresenterSession.scheduled_at.desc())
+        )
+    elif tab == "past":
+        stmt = (
+            base.where(
+                PresenterSession.is_hidden == False,  # noqa: E712
+                PresenterSession.status.in_(
+                    (
+                        PresenterSessionStatus.ENDED,
+                        PresenterSessionStatus.CANCELLED,
+                    )
+                ),
+            )
+            .order_by(PresenterSession.scheduled_at.desc())
+        )
+    elif tab == "hidden":
+        stmt = base.where(PresenterSession.is_hidden == True).order_by(  # noqa: E712
+            PresenterSession.scheduled_at.desc()
+        )
+    else:
+        raise ValueError(f"Geçersiz tab değeri: {tab}")
+
+    stmt = stmt.limit(limit).offset(offset)
+    result = await db.execute(stmt)
+    return list(result.scalars().unique().all())
+
+
+async def admin_set_session_hidden(
+    db: AsyncSession, session_id: uuid.UUID, hidden: bool
+) -> PresenterSession:
+    """Admin override — oturumu public sayfadan gizle/geri getir.
+
+    is_hidden=True → public /auctions sayfasında "Canlı Sunucu Müzayedeleri"
+    bölümünde gözükmez, doğrudan link bile 404 döner. Lot'lar bireysel
+    olarak değiştirilmez; oturum container'ı saklanır.
+    """
+    stmt = (
+        select(PresenterSession)
+        .where(PresenterSession.id == session_id)
+        .options(
+            selectinload(PresenterSession.lots)
+            .selectinload(Auction.watch)
+            .selectinload(Watch.images),
+            selectinload(PresenterSession.presenter),
+        )
+    )
+    session = (await db.execute(stmt)).scalar_one_or_none()
+    if session is None:
+        raise NotFoundError("Oturum bulunamadı")
+    session.is_hidden = hidden
+    await db.commit()
+    await db.refresh(session)
+    return session
+
+
+async def admin_cancel_session(
+    db: AsyncSession, session_id: uuid.UUID
+) -> PresenterSession:
+    """Admin override — oturumu iptal et.
+
+    PLANNING veya LIVE durumdaki oturumlar için. Mevcut LIVE bir lot
+    varsa kapatılır (escrow oluşturulmaz, no-sale). ENDED/CANCELLED
+    oturumlar için işlem yok (idempotent değil, 409 döner).
+    """
+    stmt = (
+        select(PresenterSession)
+        .where(PresenterSession.id == session_id)
+        .options(
+            selectinload(PresenterSession.lots)
+            .selectinload(Auction.watch)
+            .selectinload(Watch.images),
+            selectinload(PresenterSession.presenter),
+        )
+    )
+    session = (await db.execute(stmt)).scalar_one_or_none()
+    if session is None:
+        raise NotFoundError("Oturum bulunamadı")
+    if session.status not in (
+        PresenterSessionStatus.PLANNING,
+        PresenterSessionStatus.LIVE,
+    ):
+        raise ConflictError(
+            f"{session.status.value} durumundaki oturum iptal edilemez"
+        )
+
+    # Mevcut LIVE lot varsa ENDED'a çek (no-sale; admin iptali, satış yok)
+    for lot in session.lots:
+        if lot.status == AuctionStatus.LIVE:
+            lot.status = AuctionStatus.ENDED
+        elif lot.status == AuctionStatus.SCHEDULED:
+            lot.status = AuctionStatus.CANCELLED
+
+    session.status = PresenterSessionStatus.CANCELLED
+    await db.commit()
+    await db.refresh(session)
+    return session
