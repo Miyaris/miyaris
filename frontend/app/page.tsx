@@ -30,7 +30,7 @@ export default async function HomePage() {
               Miyaris — Lüks Saat Pazarı & Özel Müzayede
             </span>
             <h1 className="font-display text-5xl md:text-7xl leading-[1.05] mt-6">
-              Sertifikalı koleksiyon parçaları.
+              Sertifikalı lüks saatler.
               <br />
               <span className="text-brass">Güvenilir pazar</span>, şeffaf
               müzayede.
