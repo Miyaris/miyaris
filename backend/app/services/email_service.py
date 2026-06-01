@@ -164,6 +164,46 @@ async def send_outbid_email(
     )
 
 
+async def send_admin_new_registration_email(user: User) -> None:
+    """Yeni kayıt sonrası ADMIN_EMAILS listesindeki tüm admin'lere bildirim.
+
+    Spam riskini önlemek için tek `to:` listesi olarak gönderilir (her admin
+    BCC değil; gelen kutusunda "siz ve diğer admin'ler" net görünür). Bilgi
+    verici, aksiyon gerektirmeyen mesaj — admin paneline link içerir.
+    """
+    settings = get_settings()
+    admins = settings.admin_email_list
+    if not admins:
+        logger.info("[email_service] ADMIN_EMAILS boş, kayıt bildirimi atlandı")
+        return
+
+    display_name = user.full_name or (
+        f"{user.first_name or ''} {user.last_name or ''}".strip() or "(isim yok)"
+    )
+    admin_users_url = f"{settings.FRONTEND_URL.rstrip('/')}/admin/users"
+
+    html = _admin_new_registration_html(
+        display_name=display_name,
+        email=user.email,
+        admin_url=admin_users_url,
+    )
+    text = _admin_new_registration_text(
+        display_name=display_name,
+        email=user.email,
+        admin_url=admin_users_url,
+    )
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": admins,
+            "subject": f"Yeni kayıt: {display_name}",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
 async def send_welcome_email(user: User) -> None:
     """Doğrulama bittikten sonra: lüks tonlu karşılama maili."""
     settings = get_settings()
@@ -356,6 +396,52 @@ def _outbid_text(
         "Müzayede henüz açık — liderliği geri almak için yeni bir teklif "
         f"verebilirsiniz:\n{auction_url}\n\n"
         "— Miyaris"
+    )
+
+
+def _admin_new_registration_html(
+    *, display_name: str, email: str, admin_url: str
+) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Yeni Üye Kaydı</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 24px 0;line-height:1.3;">{display_name} Miyaris'e katıldı</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 16px 0;">
+  Aşağıdaki bilgilerle yeni bir hesap oluşturuldu. Kullanıcı henüz e-posta
+  doğrulamasını tamamlamamış olabilir &mdash; doğruladığında sistem otomatik
+  olarak hesabı etkinleştirir.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 28px 0;">
+  <tr>
+    <td style="padding:16px 20px;background-color:#F8F6F0;border-left:3px solid #B8A179;">
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;">İsim</p>
+      <p style="margin:0 0 12px 0;font-size:15px;color:#1F1F23;">{display_name}</p>
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;">E-posta</p>
+      <p style="margin:0;font-size:15px;color:#1F1F23;">{email}</p>
+    </td>
+  </tr>
+</table>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{admin_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Yönetim Paneli</a>
+    </td>
+  </tr>
+</table>
+<p style="font-size:12px;line-height:1.7;color:#6B6B70;margin:24px 0 0 0;border-top:1px solid #ECEAE3;padding-top:20px;">
+  Bu otomatik bildirim Miyaris yöneticileri için gönderilmiştir.
+</p>"""
+    return _BASE_WRAPPER.format(title="Yeni Üye Kaydı", body=body)
+
+
+def _admin_new_registration_text(
+    *, display_name: str, email: str, admin_url: str
+) -> str:
+    return (
+        "Yeni üye kaydı:\n\n"
+        f"  İsim:    {display_name}\n"
+        f"  E-posta: {email}\n\n"
+        f"Yönetim paneli: {admin_url}\n\n"
+        "— Miyaris (otomatik bildirim)"
     )
 
 

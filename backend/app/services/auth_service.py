@@ -1,3 +1,5 @@
+import asyncio
+import logging
 import uuid
 
 from jose import JWTError
@@ -18,9 +20,12 @@ from app.models.user import User
 from app.schemas.auth import TokenResponse
 from app.schemas.user import UserCreate
 from app.services.email_service import (
+    send_admin_new_registration_email,
     send_password_reset_email,
     send_verification_email,
 )
+
+logger = logging.getLogger(__name__)
 from app.services.nvi_service import verify_tc_with_nvi
 from app.utils.exceptions import (
     APIError,
@@ -101,6 +106,13 @@ async def register_user(db: AsyncSession, payload: UserCreate) -> User:
     # ileride /auth/resend-verification endpoint'i eklenebilir.
     verify_token = create_email_verify_token(user.id)
     await send_verification_email(user, verify_token)
+
+    # Admin'lere bilgilendirme maili — fire-and-forget. Hata olursa kayıt
+    # bozulmaz (email_service swallow ediyor). ADMIN_EMAILS env boşsa atlanır.
+    try:
+        asyncio.create_task(send_admin_new_registration_email(user))
+    except Exception:  # noqa: BLE001
+        logger.exception("Admin yeni kayıt bildirimi schedule edilemedi")
 
     return user
 
