@@ -115,6 +115,9 @@ async def verify_tc_with_nvi(
         "NVİ isteği gönderiliyor — TC=%s Ad=%r Soyad=%r Yıl=%d",
         tc_kimlik_no, ad, soyad, birth_year,
     )
+    # SOAP envelope'i log'a yaz — encoding/escape problemlerini görmek için.
+    # PII içerdiği için sadece DEBUG seviyede, production'da gizli kalsın.
+    logger.debug("NVİ SOAP request body:\n%s", body)
 
     try:
         # verify=False: Mac trust store'da NVİ root'u eksik olabilir.
@@ -183,10 +186,13 @@ async def verify_tc_with_nvi(
     result = parse_nvi_response(response.text)
     logger.info("NVİ sonucu — TC=%s → %s", tc_kimlik_no, result)
     if not result:
+        # Full response'u yaz — NVI bazen TCKimlikNoDogrulaResult yerine
+        # hata mesajı döndürür (rate limit, geçersiz format vb.). İlk 2KB
+        # büyük çoğunlukta yeterli.
         logger.warning(
-            "NVİ EŞLEŞMEDİ — TC=%s gönderilen Ad=%r Soyad=%r Yıl=%d. "
-            "Response (ilk 800 char): %s",
-            tc_kimlik_no, ad, soyad, birth_year, response.text[:800],
+            "NVİ EŞLEŞMEDİ — TC=%s gönderilen Ad=%r Soyad=%r Yıl=%d.\n"
+            "Full response (ilk 2000 char):\n%s",
+            tc_kimlik_no, ad, soyad, birth_year, response.text[:2000],
         )
     return result
 
