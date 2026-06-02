@@ -13,6 +13,7 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.user import User, UserRole
 from app.models.escrow import EscrowStatus, EscrowTransaction
 from app.schemas.admin import (
+    AdminActiveSetRequest,
     AdminAuctionListItem,
     AdminKycSetRequest,
     AdminPresenterSessionListItem,
@@ -34,7 +35,7 @@ from app.services import (
     moderation_service,
     presenter_service,
 )
-from app.utils.exceptions import NotFoundError
+from app.utils.exceptions import APIError, NotFoundError
 from app.utils.pagination import PaginationParams, pagination_dep
 
 router = APIRouter(
@@ -402,6 +403,42 @@ async def set_user_presenter(
     if user is None:
         raise NotFoundError("Kullanıcı bulunamadı")
     user.is_presenter = payload.is_presenter
+    await db.commit()
+    await db.refresh(user)
+    return AdminUserListItem.model_validate(user)
+
+
+@router.post(
+    "/users/{user_id}/set-active",
+    response_model=AdminUserListItem,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def set_user_active(
+    user_id: uuid.UUID,
+    payload: AdminActiveSetRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcıyı pasifleştir / aktif et (soft delete).
+
+    Pasif kullanıcı login yapamaz (`authenticate()` is_active kontrolü). DB
+    kayıtları korunur — watch'lar, teklifler, escrow geçmişi. Hard delete
+    yerine bu mekanizma tercih edilir; FK constraint patlatma riski yok ve
+    geri alınabilir.
+
+    Kendini pasifleştirme korunmuş — admin kendi hesabını yanlışlıkla
+    kapatamaz (panele erişim kaybeder).
+    """
+    if user_id == current_user.id and not payload.is_active:
+        raise APIError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kendi hesabınızı pasifleştiremezsiniz",
+        )
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if user is None:
+        raise NotFoundError("Kullanıcı bulunamadı")
+    user.is_active = payload.is_active
     await db.commit()
     await db.refresh(user)
     return AdminUserListItem.model_validate(user)

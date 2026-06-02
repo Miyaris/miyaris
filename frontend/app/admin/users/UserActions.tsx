@@ -6,27 +6,27 @@ import { useState } from "react";
 /**
  * Kullanıcı satırı için admin override aksiyonları.
  *
- * İki aksiyon var:
- *   - KYC onayla / KYC geri çek — NVI_VERIFICATION_ENABLED=false iken kayıt
- *     olmuş kullanıcılar otomatik kyc_verified=False; bu da $3000+ teklif
- *     vermelerini bloklar. Admin elle override eder.
- *   - Presenter yetkisi ver / geri çek — `/presenter/*` canlı müzayede
- *     sunucu paneline erişim. Rol'den bağımsız; kullanıcının rolü buyer/
- *     seller/expert/admin olabilir, hala presenter olabilir.
+ * Üç aksiyon:
+ *   - KYC onayla / KYC geri çek
+ *   - Presenter yetkisi ver / geri çek
+ *   - Pasifleştir / Aktif Et (soft delete) — pasif kullanıcı login yapamaz.
+ *     Watch'lar, teklifler, escrow korunur. Hard delete yerine bu mekanizma
+ *     tercih edilir; FK constraint patlatma riski yok ve geri alınabilir.
  *
- * Tüm confirm flow inline — modal yok. Aynı anda yalnızca bir aksiyon
- * confirming olabilir (state tek slot).
+ * Tüm confirm flow inline — modal yok. Aynı anda tek aksiyon confirming.
  */
-type Pending = "kyc" | "presenter" | null;
+type Pending = "kyc" | "presenter" | "active" | null;
 
 export function UserActions({
   userId,
   kycVerified,
   isPresenter,
+  isActive,
 }: {
   userId: string;
   kycVerified: boolean;
   isPresenter: boolean;
+  isActive: boolean;
 }) {
   const router = useRouter();
   const [pending, setPending] = useState<Pending>(null);
@@ -34,7 +34,7 @@ export function UserActions({
   const [error, setError] = useState<string | null>(null);
 
   async function run(
-    which: "kyc" | "presenter",
+    which: "kyc" | "presenter" | "active",
     path: string,
     body: Record<string, boolean>,
   ): Promise<void> {
@@ -107,9 +107,34 @@ export function UserActions({
     );
   }
 
-  // ---- İdle durum: iki buton yan yana ---------------------------------------
+  if (confirming === "active") {
+    return (
+      <ConfirmRow
+        message={
+          isActive
+            ? "Hesap pasifleştirilsin mi? (Kullanıcı giriş yapamaz)"
+            : "Hesap yeniden aktif edilsin mi?"
+        }
+        confirmLabel={isActive ? "Pasifleştir" : "Aktif Et"}
+        accent={isActive ? "burgundy" : "olive"}
+        pending={pending === "active"}
+        error={error}
+        onCancel={() => {
+          setConfirming(null);
+          setError(null);
+        }}
+        onConfirm={() =>
+          run("active", `/api/admin/users/${userId}/set-active`, {
+            is_active: !isActive,
+          })
+        }
+      />
+    );
+  }
+
+  // ---- İdle durum: butonlar -------------------------------------------------
   return (
-    <div className="inline-flex items-center gap-3 justify-end">
+    <div className="inline-flex items-center gap-3 justify-end flex-wrap">
       <button
         type="button"
         onClick={() => setConfirming("kyc")}
@@ -132,6 +157,18 @@ export function UserActions({
         }`}
       >
         {isPresenter ? "Presenter Çek" : "Presenter Ver"}
+      </button>
+      <span className="text-charcoal-300">·</span>
+      <button
+        type="button"
+        onClick={() => setConfirming("active")}
+        className={`text-xs tracking-widest uppercase border-b pb-0.5 ${
+          isActive
+            ? "text-charcoal-500 hover:text-burgundy border-charcoal/20 hover:border-burgundy"
+            : "text-olive hover:text-olive border-olive/40"
+        }`}
+      >
+        {isActive ? "Pasifleştir" : "Aktif Et"}
       </button>
     </div>
   );
@@ -161,7 +198,7 @@ function ConfirmRow({
         ? "text-olive border-olive/40 hover:text-olive"
         : "text-burgundy border-burgundy/40 hover:text-burgundy";
   return (
-    <div className="flex items-center gap-3 justify-end">
+    <div className="flex items-center gap-3 justify-end flex-wrap">
       <span className="text-xs text-charcoal-500">{message}</span>
       <button
         type="button"

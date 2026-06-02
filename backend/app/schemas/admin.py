@@ -149,6 +149,19 @@ class AdminPresenterSetRequest(BaseModel):
     is_presenter: bool
 
 
+class AdminActiveSetRequest(BaseModel):
+    """Admin override: kullanıcının is_active bayrağını set'le.
+
+    is_active=False (pasif) → login engellenir (authenticate() guard'ı bunu
+    yakalar), kullanıcı hesabına giriş yapamaz. Mevcut watch'ları, teklifleri,
+    escrow kayıtları DB'de korunur — hard delete değil, geri alınabilir.
+
+    Aktif tekrar yapılırsa kullanıcı normal akışla devam eder.
+    """
+
+    is_active: bool
+
+
 # ----- Müzayede yönetimi ------------------------------------------------------
 
 

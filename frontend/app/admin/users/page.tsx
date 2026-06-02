@@ -164,6 +164,7 @@ export default async function AdminUsersPage({
                         userId={u.id}
                         kycVerified={u.kyc_verified}
                         isPresenter={u.is_presenter}
+                        isActive={u.is_active}
                       />
                     </td>
                   </tr>
