@@ -10,8 +10,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
 from app.core.dependencies import get_current_user, require_role
+from app.models.bid import Bid
 from app.models.user import User, UserRole
 from app.models.escrow import EscrowStatus, EscrowTransaction
+from app.models.watch import Watch
+from app.utils.exceptions import ConflictError
 from app.schemas.admin import (
     AdminActiveSetRequest,
     AdminAuctionListItem,
@@ -442,6 +445,74 @@ async def set_user_active(
     await db.commit()
     await db.refresh(user)
     return AdminUserListItem.model_validate(user)
+
+
+@router.delete(
+    "/users/{user_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
+async def hard_delete_user(
+    user_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kullanıcıyı DB'den **kalıcı olarak** sil.
+
+    Test hesaplarını temizlemek için. Korumalar:
+      * Kendi hesabını silemezsin (admin paneli erişimini kaybedersin)
+      * Kullanıcının teklif geçmişi varsa (Bid FK RESTRICT) silinemez — eskrow
+        audit trail koruması. Onun yerine `set-active` ile pasifleştir.
+      * Kullanıcının watch'ı varsa CASCADE delete ile birlikte silinir. Eğer
+        watch'ın aktif escrow'u varsa yine reject.
+    """
+    if user_id == current_user.id:
+        raise APIError(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Kendi hesabınızı silemezsiniz",
+        )
+
+    user_result = await db.execute(select(User).where(User.id == user_id))
+    user = user_result.scalar_one_or_none()
+    if user is None:
+        raise NotFoundError("Kullanıcı bulunamadı")
+
+    # Teklif geçmişi kontrolü — Bid.bidder_id FK ondelete=RESTRICT olduğu için
+    # silmeye çalışmak DB hatası verir. Önden net mesajla reddet.
+    bid_count = (
+        await db.execute(
+            select(func.count(Bid.id)).where(Bid.bidder_id == user_id)
+        )
+    ).scalar_one()
+    if bid_count > 0:
+        raise ConflictError(
+            f"Bu kullanıcının {bid_count} teklif geçmişi var. "
+            "Silmek yerine 'Pasifleştir' kullanın."
+        )
+
+    # Aktif escrow varsa engelle (RELEASED/REFUNDED dışında olan)
+    escrow_count = (
+        await db.execute(
+            select(func.count(EscrowTransaction.id)).where(
+                (EscrowTransaction.buyer_id == user_id)
+                | (EscrowTransaction.seller_id == user_id),
+                EscrowTransaction.status.notin_(
+                    (EscrowStatus.RELEASED, EscrowStatus.REFUNDED)
+                ),
+            )
+        )
+    ).scalar_one()
+    if escrow_count > 0:
+        raise ConflictError(
+            f"Kullanıcının {escrow_count} aktif Güvenli Kasa işlemi var. "
+            "Silmek yerine 'Pasifleştir' kullanın."
+        )
+
+    # Watch'lar CASCADE delete ile birlikte silinir (Watch.seller_id ondelete=
+    # CASCADE). Refresh token'lar da CASCADE.
+    await db.delete(user)
+    await db.commit()
+    return None
 
 
 # ----- Müzayede yönetimi (ADMIN + EXPERT) -----------------------------------

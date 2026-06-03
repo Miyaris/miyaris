@@ -6,16 +6,17 @@ import { useState } from "react";
 /**
  * Kullanıcı satırı için admin override aksiyonları.
  *
- * Üç aksiyon:
+ * Dört aksiyon:
  *   - KYC onayla / KYC geri çek
  *   - Presenter yetkisi ver / geri çek
  *   - Pasifleştir / Aktif Et (soft delete) — pasif kullanıcı login yapamaz.
- *     Watch'lar, teklifler, escrow korunur. Hard delete yerine bu mekanizma
- *     tercih edilir; FK constraint patlatma riski yok ve geri alınabilir.
+ *     Watch'lar, teklifler, escrow korunur, geri alınabilir.
+ *   - Sil (hard delete) — test hesapları için. Backend bid/escrow varsa
+ *     409 döner; o durumda Pasifleştir kullan.
  *
  * Tüm confirm flow inline — modal yok. Aynı anda tek aksiyon confirming.
  */
-type Pending = "kyc" | "presenter" | "active" | null;
+type Pending = "kyc" | "presenter" | "active" | "delete" | null;
 
 export function UserActions({
   userId,
@@ -49,6 +50,27 @@ export function UserActions({
       const data = await res.json();
       if (!res.ok) {
         setError(data.detail ?? "İşlem başarısız");
+        return;
+      }
+      setConfirming(null);
+      router.refresh();
+    } catch {
+      setError("Bağlantı hatası");
+    } finally {
+      setPending(null);
+    }
+  }
+
+  async function runDelete(): Promise<void> {
+    setError(null);
+    setPending("delete");
+    try {
+      const res = await fetch(`/api/admin/users/${userId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setError(data?.detail ?? "Silme başarısız");
         return;
       }
       setConfirming(null);
@@ -132,6 +154,23 @@ export function UserActions({
     );
   }
 
+  if (confirming === "delete") {
+    return (
+      <ConfirmRow
+        message="Hesap kalıcı silinecek. Geri alınamaz. Emin misin?"
+        confirmLabel="Kalıcı Sil"
+        accent="burgundy"
+        pending={pending === "delete"}
+        error={error}
+        onCancel={() => {
+          setConfirming(null);
+          setError(null);
+        }}
+        onConfirm={runDelete}
+      />
+    );
+  }
+
   // ---- İdle durum: butonlar -------------------------------------------------
   return (
     <div className="inline-flex items-center gap-3 justify-end flex-wrap">
@@ -169,6 +208,14 @@ export function UserActions({
         }`}
       >
         {isActive ? "Pasifleştir" : "Aktif Et"}
+      </button>
+      <span className="text-charcoal-300">·</span>
+      <button
+        type="button"
+        onClick={() => setConfirming("delete")}
+        className="text-xs tracking-widest uppercase text-burgundy hover:text-burgundy border-b border-burgundy/40 pb-0.5"
+      >
+        Sil
       </button>
     </div>
   );
