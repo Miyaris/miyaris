@@ -13,7 +13,10 @@ from app.utils.exceptions import APIError
 logger = logging.getLogger(__name__)
 
 NVI_ENDPOINT = "https://tckimlik.nvi.gov.tr/Service/KPSPublic.asmx"
-NVI_SOAP_ACTION = "http://tckimlik.nvi.gov.tr/WS/TCKimlikNoDogrula"
+# SOAP 1.1 RFC: SOAPAction header değeri tırnak içinde olmalı. ASP.NET / IIS
+# sunucular tırnaksız SOAPAction'ı parse edemeyip "302 → Error.html" redirect
+# atar. NVI'nın bu davranışına maruz kaldık — şimdi tırnaklı gönderiyoruz.
+NVI_SOAP_ACTION = '"http://tckimlik.nvi.gov.tr/WS/TCKimlikNoDogrula"'
 
 _RESULT_TRUE_PATTERN = re.compile(
     r"<\s*TCKimlikNoDogrulaResult\s*>\s*true\s*</\s*TCKimlikNoDogrulaResult\s*>",
