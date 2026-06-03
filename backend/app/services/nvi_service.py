@@ -196,12 +196,32 @@ async def verify_tc_with_nvi(
             detail="NVİ doğrulamasında beklenmedik bir hata oluştu.",
         ) from e
 
+    # Yanıt SOAP zarfı içeriyor mu? NVI servisi bozulunca (302 redirect,
+    # IIS Error.html vb.) HTML dönüyor — geçerli SOAP yanıtı değil. SOAP
+    # yapısı yoksa "servis hatası" kabul edilir → APIError 503 (kayıt
+    # fail-open ile geçer, admin manuel onay verir). Aksi halde False
+    # döndürmek "kullanıcı yanlış bilgi verdi" olarak algılanır ve kayıt
+    # YANLIŞLIKLA reddedilir.
+    body_lower = response.text.lower()
+    has_soap_envelope = (
+        "<soap:envelope" in body_lower or "<s:envelope" in body_lower
+    )
+    has_nvi_response = "tckimliknodogrularesponse" in body_lower
+    if not (has_soap_envelope and has_nvi_response):
+        logger.error(
+            "NVİ servisi SOAP yanıtı dönmedi — TC=%s. "
+            "Response (ilk 1000 char):\n%s",
+            tc_kimlik_no, response.text[:1000],
+        )
+        raise APIError(
+            status_code=503,
+            detail="NVİ servisi geçici olarak yanıt veremiyor",
+        )
+
     result = parse_nvi_response(response.text)
     logger.info("NVİ sonucu — TC=%s → %s", tc_kimlik_no, result)
     if not result:
-        # Full response'u yaz — NVI bazen TCKimlikNoDogrulaResult yerine
-        # hata mesajı döndürür (rate limit, geçersiz format vb.). İlk 2KB
-        # büyük çoğunlukta yeterli.
+        # Servis çalıştı, ama bilgi eşleşmedi (kullanıcı yanlış bilgi verdi)
         logger.warning(
             "NVİ EŞLEŞMEDİ — TC=%s gönderilen Ad=%r Soyad=%r Yıl=%d.\n"
             "Full response (ilk 2000 char):\n%s",
