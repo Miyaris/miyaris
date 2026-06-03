@@ -64,26 +64,41 @@ async def register_user(db: AsyncSession, payload: UserCreate) -> User:
         if mersis_existing.scalar_one_or_none():
             raise ConflictError("Bu MERSİS numarası zaten kayıtlı")
 
-    # NVİ KPSPublic doğrulaması — devlet sisteminde kimlik bilgileri eşleşmiyorsa
-    # kayıt reddedilir. NVI_VERIFICATION_ENABLED=False ise atlanır (dev modu).
+    # NVİ KPSPublic doğrulaması.
+    #
+    # Önceki davranış: NVİ false dönerse kayıt reddedilirdi. Pratikte sorun:
+    # NVİ servisi 302 redirect, Error.html, rate limit gibi geçici hatalar
+    # dönüyor → gerçek kullanıcılar yanlışlıkla reddediliyor.
+    #
+    # Yeni davranış (fail-open): NVI çağrısı denenir; servis hatası veya
+    # eşleşme false ise kayıt geçer, `kyc_verified=False` işaretlenir.
+    # Admin /admin/users panelinden elle onay verir. Bu sayede:
+    #   1. NVİ geçici sorunda kullanıcı kaybedilmez
+    #   2. KYC garantisi yine var (admin elle inceleme)
+    #   3. $3000 üstü teklif yine bloklanır (kyc_verified=False)
     settings = get_settings()
-    nvi_ok = await verify_tc_with_nvi(
-        tc_kimlik_no=payload.tc_kimlik_no,
-        first_name=payload.first_name,
-        last_name=payload.last_name,
-        birth_year=payload.birth_year,
-    )
-    if not nvi_ok:
-        # 400 Bad Request — kullanıcının verdiği bilgiler NVİ ile eşleşmiyor
-        raise APIError(
-            status_code=400,
-            detail=(
-                "Doğrulama Başarısız: Kimlik bilgileriniz NVİ devlet "
-                "sistemiyle eşleşmiyor."
-            ),
-        )
+    nvi_ok = False
+    if settings.NVI_VERIFICATION_ENABLED:
+        try:
+            nvi_ok = await verify_tc_with_nvi(
+                tc_kimlik_no=payload.tc_kimlik_no,
+                first_name=payload.first_name,
+                last_name=payload.last_name,
+                birth_year=payload.birth_year,
+            )
+        except APIError as e:
+            # NVİ servis hatası (timeout, 503, SSL, redirect chain vb.) —
+            # kullanıcıyı bloklama, kayıt geçsin, kyc_verified=False kalsın.
+            logger.warning(
+                "NVİ servis hatası, kayıt fail-open ile geçirildi: %s",
+                e.detail,
+            )
+            nvi_ok = False
+    # NOT: Eski "fail-closed" guard kaldırıldı. NVI false döndüğünde artık
+    # hata atmıyoruz; aşağıda User.kyc_verified=nvi_ok ile durumu işaretliyoruz.
+    # Admin paneli /admin/users sayfasından elle onay verebilir.
 
-    # Kayıt tamam — kyc_verified flag'i NVI etkin durumda True
+    # Kayıt tamam — kyc_verified flag'i NVI doğrulamasından gelir
     user = User(
         email=payload.email,
         hashed_password=hash_password(payload.password),
@@ -94,7 +109,9 @@ async def register_user(db: AsyncSession, payload: UserCreate) -> User:
         phone=payload.phone,
         tc_kimlik_no=payload.tc_kimlik_no,
         mersis_no=payload.mersis_no,
-        kyc_verified=settings.NVI_VERIFICATION_ENABLED,
+        # Sadece NVİ doğrulaması başarılı olduysa True; aksi halde admin
+        # elle onay verecek (False kalır, $3000 üstü teklif kilitli kalır).
+        kyc_verified=nvi_ok,
     )
     db.add(user)
     await db.commit()

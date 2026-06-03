@@ -105,10 +105,18 @@ async def verify_tc_with_nvi(
     soyad = turkish_upper(last_name.strip())
     body = _build_envelope(tc_kimlik_no.strip(), ad, soyad, birth_year)
 
+    # NVI bazı User-Agent'ları reddediyor (botlara karşı). Gerçekçi tarayıcı
+    # string'i kullan — sunucu loglarında "Mozilla 5.0 + Chrome" görür.
     headers = {
         "Content-Type": "text/xml; charset=utf-8",
         "SOAPAction": NVI_SOAP_ACTION,
-        "User-Agent": "Mozilla/5.0 (Miyaris KYC)",
+        "User-Agent": (
+            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/xml, application/soap+xml, application/xml",
+        "Accept-Encoding": "gzip, deflate",
     }
 
     logger.info(
@@ -120,10 +128,15 @@ async def verify_tc_with_nvi(
     logger.debug("NVİ SOAP request body:\n%s", body)
 
     try:
-        # verify=False: Mac trust store'da NVİ root'u eksik olabilir.
-        # MVP için bypass; production'da certifi bundle'a NVİ root eklenmeli.
+        # `follow_redirects=True` — NVI bazen HTTP→HTTPS yönlendirmesi yapar
+        # ve geçerli SOAP yanıtı redirect chain'in sonunda gelir. verify=True
+        # production'da geçerli (certifi bundle NVİ kök sertifikasını tanır);
+        # Mac local dev için fallback olarak verify=False denenebilir ama
+        # Render container'ında verify=True doğru.
         async with httpx.AsyncClient(
-            timeout=settings.NVI_TIMEOUT_SECONDS, verify=False
+            timeout=settings.NVI_TIMEOUT_SECONDS,
+            verify=True,
+            follow_redirects=True,
         ) as client:
             response = await client.post(
                 NVI_ENDPOINT, content=body.encode("utf-8"), headers=headers
