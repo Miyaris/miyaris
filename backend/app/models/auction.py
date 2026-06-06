@@ -48,6 +48,17 @@ class Auction(Base, TimestampMixin):
     min_bid_increment: Mapped[Decimal] = mapped_column(
         Numeric(14, 2), default=Decimal("50"), nullable=False
     )
+    # Anti-troll kapora — kullanıcının bu müzayedeye teklif vermeden önce
+    # ödemesi gereken sabit kapora tutarı (TL). Varsayılan 1000 TL; admin
+    # ileride yüksek değerli müzayedeler için artırabilir. Tutar kart
+    # üzerinde provizyon (pre-auth) olarak tutulur — kazanan değilse
+    # iade edilir, kazanan ödemeyi yapmazsa irat olarak kaydedilir.
+    required_deposit_amount: Mapped[Decimal] = mapped_column(
+        Numeric(14, 2),
+        default=Decimal("1000"),
+        nullable=False,
+        server_default="1000",
+    )
     current_price: Mapped[Decimal] = mapped_column(Numeric(14, 2), nullable=False)
     starts_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False

@@ -20,8 +20,9 @@ from app.schemas.auction import (
     MyAuctionParticipation,
 )
 from app.schemas.bid import BidCreate, BidPublic
+from app.schemas.deposit import DepositStatus
 from app.schemas.escrow import BuyNowRequest
-from app.services import auction_service, bid_service, email_service
+from app.services import auction_service, bid_service, deposit_service, email_service
 from app.services.bid_service import bidder_alias
 from app.utils.pagination import PaginationParams, pagination_dep
 from app.websockets.manager import manager
@@ -282,6 +283,59 @@ async def place_bid(
         amount=bid.amount,
         placed_at=bid.placed_at,
         is_proxy=bid.is_proxy,
+    )
+
+
+# ============================================================================
+# Kapora (Deposit) — anti-troll provizyon sistemi
+# ============================================================================
+
+
+@router.get(
+    "/{auction_id}/my-deposit",
+    response_model=DepositStatus,
+)
+async def my_deposit_status(
+    auction_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Bu müzayede için kapora durumum: required_deposit_amount + deposit_paid."""
+    auction = await auction_service.get_auction(db, auction_id)
+    participant = await deposit_service.get_or_create_participant(
+        db, auction_id, user
+    )
+    return DepositStatus(
+        auction_id=auction_id,
+        required_deposit_amount=auction.required_deposit_amount,
+        deposit_paid=participant.deposit_paid,
+        deposit_paid_at=participant.deposit_paid_at,
+    )
+
+
+@router.post(
+    "/{auction_id}/deposit",
+    response_model=DepositStatus,
+    status_code=status.HTTP_201_CREATED,
+)
+async def pay_deposit_endpoint(
+    auction_id: uuid.UUID,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Kapora öde (MVP: mock — gerçek POS Faz 2'de iyzico ile bağlanacak).
+
+    Idempotent: zaten ödenmiş ise no-op, mevcut durumu döner.
+    """
+    participant = await deposit_service.pay_deposit(
+        db, auction_id, user, provider_ref=None
+    )
+    auction = await auction_service.get_auction(db, auction_id)
+    return DepositStatus(
+        auction_id=auction_id,
+        required_deposit_amount=auction.required_deposit_amount,
+        deposit_paid=participant.deposit_paid,
+        deposit_paid_at=participant.deposit_paid_at,
     )
 
 

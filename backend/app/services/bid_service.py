@@ -64,6 +64,17 @@ async def place_bid(
     if auction.watch.seller_id == bidder.id:
         raise ForbiddenError("Kendi saatinize teklif veremezsiniz")
 
+    # Anti-troll kapora guard'ı — kullanıcı bu müzayedeye 1000 TL kapora
+    # ödemediyse teklif veremez. Frontend bunu önden kontrol eder ama
+    # backend de defense-in-depth olarak doğrular.
+    from app.services.deposit_service import has_paid_deposit
+
+    paid = await has_paid_deposit(db, auction.id, bidder.id)
+    if not paid:
+        raise ForbiddenError(
+            "Teklif vermeden önce müzayede kaporasını ödemelisiniz"
+        )
+
     min_required = auction.current_price + auction.min_bid_increment
     if payload.amount < min_required:
         raise ConflictError(f"Minimum teklif: ${min_required}")

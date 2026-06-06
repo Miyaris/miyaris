@@ -247,6 +247,16 @@ export interface PresenterLotCreatePayload {
   buy_it_now_price?: string | null;
 }
 
+/** Kullanıcının bir müzayededeki kapora (deposit) durumu.
+ *  Backend `DepositStatus` ile birebir. Teklif verme ekranında bu durum
+ *  kontrol edilir — `deposit_paid=false` ise "Kapora Öde" modali açılır. */
+export interface DepositStatus {
+  auction_id: string;
+  required_deposit_amount: string;
+  deposit_paid: boolean;
+  deposit_paid_at: string | null;
+}
+
 export interface BidPublic {
   /** Backend gerçek bidder kimliğini sızdırmaz; anonim 'Üye #A1B2C3' formatlı
    *  deterministik etiket gönderir. Aynı kullanıcı her teklifte aynı alias'i
