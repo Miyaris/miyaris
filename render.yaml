@@ -64,6 +64,12 @@ services:
       # ---- Rate limiting ----
       - key: RATE_LIMIT_ENABLED
         value: "true"
+      # Güvenilen reverse proxy sayısı (X-Forwarded-For). Render edge tek
+      # katman olduğu için 1 doğru. ÖNÜNE Cloudflare gibi ek bir proxy
+      # koyarsan 2 yap — aksi halde rate-limit/audit IP'si yanlış (spoof'a
+      # açık) okunur. Bkz. app/core/middleware.py:client_ip.
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
       # ---- Uygulama ayarları ----
       - key: APP_NAME
         value: miyaris
@@ -85,6 +91,17 @@ services:
         value: "false"   # Vercel canlıya çıkınca dashboard'dan true yap
       - key: NVI_TIMEOUT_SECONDS
         value: "10"
+      # ---- Kapora (deposit) ödeme akışı ----
+      # iyzico/PayTR entegrasyonu HENÜZ YOK; pay_deposit parayı tahsil
+      # etmeden sadece "ödendi" işaretliyor (mock). Bu yüzden production'da
+      # VARSAYILAN KAPALI: false iken kapora endpoint'i 503 döner, kimse
+      # 0 TL ile teklif hakkı kazanamaz (1000 TL anti-troll koruması korunur).
+      #
+      # Demo/launch için mock'u bilinçli olarak canlı tutmak istersen "true"
+      # yap — ama o zaman herkesin bedava teklif verebileceğini kabul etmiş
+      # olursun. Gerçek POS bağlanınca bu env + koddaki gate kaldırılır.
+      - key: DEPOSIT_MOCK_ENABLED
+        value: "false"
       # ---- CORS — APP_ENV=production iken main.py default'u www+apex miyaris.com
       # Bu env override edilirse (örn staging subdomain), buraya JSON list
       # olarak yaz: '["https://staging.miyaris.com"]'. Boş veya default

@@ -38,11 +38,19 @@ async def place_bid(
     bidder: User,
     payload: BidCreate,
 ) -> Bid:
+    # Auction satırını FOR UPDATE ile kilitle — eşzamanlı tekliflere karşı
+    # serileştirme. Kilit olmadan iki teklif aynı `current_price`'ı okuyup
+    # ikisi de minimum-artış kontrolünü geçebilir, sonra commit sırasına göre
+    # DÜŞÜK teklif yüksek olanın üstüne yazabilir (lost update). FOR UPDATE
+    # ile ikinci teklif birincinin commit'ini bekler ve güncel fiyatı görür.
+    # `watch` ilişkisi selectinload ile ayrı sorguda yüklenir → FOR UPDATE
+    # yalnızca auctions satırına uygulanır (JOIN kilidi sorunu olmaz).
     auction = (
         await db.execute(
             select(Auction)
             .where(Auction.id == auction_id)
             .options(selectinload(Auction.watch))
+            .with_for_update()
         )
     ).scalar_one_or_none()
     if not auction:

@@ -84,6 +84,32 @@ class Settings(BaseSettings):
     # 429 yemez. Limitler kod tarafında sabit: login/register/forgot 5/min.
     RATE_LIMIT_ENABLED: bool = True
 
+    # ---- Güvenilen reverse proxy sayısı (X-Forwarded-For) ----
+    # Client IP'sini XFF'in SAĞINDAN bu kadar atlayarak okuruz. XFF formatı
+    # "client, proxy1, proxy2, ..." şeklindedir ve her proxy bağlantıyı
+    # KİMDEN aldıysa onu listenin SONUNA ekler. Yani gerçek client IP'si,
+    # bizim önümüzdeki güvenilen proxy sayısı kadar sağdan içeridedir.
+    #
+    # Önemli: ilk (en soldaki) girdiyi okursak client'ın gönderdiği sahte
+    # `X-Forwarded-For` değerine güvenmiş oluruz → rate-limit anahtarı
+    # spoof edilebilir. Bu yüzden sağdan sayıyoruz.
+    #
+    # Render edge tek katman → 1. Cloudflare + Render gibi iki katman
+    # varsa 2 yap. Lokal dev'de XFF header'ı zaten yok, değer önemsiz.
+    TRUSTED_PROXY_HOPS: int = 1
+
+    # ---- Kapora (deposit) ödeme mock'u ----
+    # MVP'de gerçek POS (iyzico) entegrasyonu yok; `pay_deposit` sadece
+    # flag set'liyor. Bu, doğrulanmamış bir ödeme akışı → production'da
+    # açıkken HERKES sıfır TL ile teklif hakkı kazanır (1000 TL anti-troll
+    # koruması fiilen devre dışı kalır).
+    #
+    # Bu yüzden production'da mock VARSAYILAN OLARAK KAPALI: APP_ENV=production
+    # iken kapora endpoint'i, bu flag açıkça `true` yapılmadıkça 503 döner.
+    # Dev/staging'de (APP_ENV != production) mock her zaman çalışır.
+    # iyzico entegrasyonu tamamlanınca bu flag tamamen kaldırılabilir.
+    DEPOSIT_MOCK_ENABLED: bool = False
+
     # ---- Production hardening flag ----
     # True iken: CORS regex sıkı, CSRF zorunlu, HS256 fallback uyarı log'lar,
     # security headers preload-ready HSTS. False (dev): permissive defaults.

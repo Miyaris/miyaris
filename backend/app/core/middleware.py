@@ -95,16 +95,32 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 # ============================================================================
 
 
-def _client_ip(request: Request) -> str:
-    """Reverse proxy arkasında X-Forwarded-For'un ilk girdisi gerçek
-    client IP. Render Cloudflare benzeri katman kullanıyor → bu header
-    güvenilebilir (Render edge proxy tarafından ezilir, client
-    spoof edemez).
+def client_ip(request: Request) -> str:
+    """Gerçek client IP'sini X-Forwarded-For'dan güvenli biçimde çıkar.
+
+    XFF formatı "client, proxy1, proxy2, ..."dir; her proxy bağlantıyı
+    kimden aldıysa onu SONA ekler. Dolayısıyla bizim önümüzdeki güvenilen
+    proxy sayısı (`TRUSTED_PROXY_HOPS`) kadar SAĞDAN içerideki girdi gerçek
+    client'tır.
+
+    İlk (en soldaki) girdiyi okumak GÜVENSİZDİR: o değer client tarafından
+    serbestçe set edilebilir → saldırgan her istekte farklı sahte IP
+    göndererek IP-bazlı rate limit'i (login brute-force) bypass edebilir.
+    Bu yüzden sağdan, güvenilen hop sayısı kadar geri sayıyoruz.
     """
     forwarded = request.headers.get("x-forwarded-for")
     if forwarded:
-        return forwarded.split(",")[0].strip()
+        parts = [p.strip() for p in forwarded.split(",") if p.strip()]
+        if parts:
+            hops = max(get_settings().TRUSTED_PROXY_HOPS, 1)
+            idx = max(0, len(parts) - hops)
+            return parts[idx]
     return get_remote_address(request)
+
+
+def _client_ip(request: Request) -> str:
+    """slowapi key_func uyumlu wrapper — `client_ip`'ye delege eder."""
+    return client_ip(request)
 
 
 # In-memory storage default. Multi-replica'ya geçince:

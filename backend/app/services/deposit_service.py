@@ -18,10 +18,11 @@ from datetime import datetime, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.models.auction import Auction, AuctionStatus
 from app.models.auction_participant import AuctionParticipant
 from app.models.user import User
-from app.utils.exceptions import ConflictError, NotFoundError
+from app.utils.exceptions import APIError, ConflictError, NotFoundError
 
 
 async def get_or_create_participant(
@@ -102,6 +103,22 @@ async def pay_deposit(
       * Müzayede ENDED/CANCELLED durumdaysa ödeme reddedilir
       * Saatin sahibi kendi müzayedesine kapora yatıramaz (anlamsız)
     """
+    # Güvenlik gate: gerçek POS entegrasyonu yokken bu fonksiyon parayı
+    # tahsil etmeden sadece deposit_paid=True yapar. Production'da açık
+    # olursa herkes 0 TL ile teklif hakkı kazanır (anti-troll koruması
+    # devre dışı). Bu yüzden prod'da mock varsayılan kapalı — bilinçli
+    # olarak DEPOSIT_MOCK_ENABLED=true set'lenmedikçe reddedilir.
+    settings = get_settings()
+    mock_allowed = settings.APP_ENV != "production" or settings.DEPOSIT_MOCK_ENABLED
+    if not mock_allowed:
+        raise APIError(
+            status_code=503,
+            detail=(
+                "Kapora ödeme sistemi henüz aktif değil. Lütfen daha sonra "
+                "tekrar deneyin."
+            ),
+        )
+
     auction = (
         await db.execute(
             select(Auction).where(Auction.id == auction_id)

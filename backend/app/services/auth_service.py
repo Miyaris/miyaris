@@ -64,42 +64,30 @@ async def register_user(db: AsyncSession, payload: UserCreate) -> User:
         if mersis_existing.scalar_one_or_none():
             raise ConflictError("Bu MERSİS numarası zaten kayıtlı")
 
-    # NVİ KPSPublic doğrulaması — üç durumlu davranış:
+    # NVİ KPSPublic doğrulaması — fail-closed.
     #
-    #   1. NVİ servisi True döndü                → kayıt OK, kyc_verified=True
-    #   2. NVİ servisi False döndü (bilgi yanlış) → kayıt REDDEDİLİR (400)
-    #   3. NVİ servisi hatası (APIError)         → kayıt OK, kyc_verified=False,
-    #                                              admin /admin/users'tan elle onay
+    #   1. NVİ True döndü                → kayıt OK, kyc_verified=True
+    #   2. NVİ False döndü (bilgi yanlış) → kayıt REDDEDİLİR (400)
+    #   3. NVİ servis hatası (APIError)  → kayıt REDDEDİLİR (503), kullanıcıdan
+    #                                       "tekrar dene" istenir
     #
-    # NVI False ile servis hatası ayrımı `nvi_service.verify_tc_with_nvi`
-    # içinde yapılıyor: SOAP envelope yoksa APIError 503 fırlar (yanıt geçersiz),
-    # SOAP envelope var ama Result=false ise direkt False döner (bilgi yanlış).
-    # Bu sayede kullanıcı yanlış bilgi girdiğinde fake hesap açamaz, ama NVI
-    # geçici bozulduğunda dürüst kullanıcı kaybedilmez.
+    # Fail-closed seçildi çünkü NVİ bozulunca "fail-open" kayıt geçirmek
+    # yanlış bilgilerle sahte hesap açılmasına neden oluyordu. Şu an NVI
+    # bozulduğunda hiç kimse kayıt olamaz, ama yanlış bilgiyle de hesap
+    # açılamaz. Servis düzelene kadar bekle.
     settings = get_settings()
     nvi_ok = False
-    nvi_service_failed = False
     if settings.NVI_VERIFICATION_ENABLED:
-        try:
-            nvi_ok = await verify_tc_with_nvi(
-                tc_kimlik_no=payload.tc_kimlik_no,
-                first_name=payload.first_name,
-                last_name=payload.last_name,
-                birth_year=payload.birth_year,
-            )
-        except APIError as e:
-            # NVİ servis hatası — yanıt SOAP değil veya servis ulaşılamaz.
-            # Kullanıcıyı bloklama, kayıt geçsin, admin manuel onaylar.
-            logger.warning(
-                "NVİ servis hatası, kayıt admin onayına bırakıldı: %s",
-                e.detail,
-            )
-            nvi_service_failed = True
-            nvi_ok = False
+        # APIError doğrudan endpoint'e propagate — fail-closed
+        nvi_ok = await verify_tc_with_nvi(
+            tc_kimlik_no=payload.tc_kimlik_no,
+            first_name=payload.first_name,
+            last_name=payload.last_name,
+            birth_year=payload.birth_year,
+        )
 
-    # Servis çalıştı ve False döndü → kullanıcı yanlış bilgi girdi → REDDET.
-    # Servis hatası ise (nvi_service_failed=True) bu blok atlanır, kayıt geçer.
-    if settings.NVI_VERIFICATION_ENABLED and not nvi_ok and not nvi_service_failed:
+    # NVI False döndü → bilgi yanlış → reddet
+    if settings.NVI_VERIFICATION_ENABLED and not nvi_ok:
         raise APIError(
             status_code=400,
             detail=(
@@ -279,6 +267,14 @@ async def reset_password(db: AsyncSession, token: str, new_password: str) -> Use
         user.is_verified = True
     await db.commit()
     await db.refresh(user)
+
+    # Güvenlik: şifre sıfırlandığında kullanıcının TÜM aktif refresh
+    # token'larını iptal et. Aksi halde hesabı ele geçiren biri şifre
+    # sıfırlansa bile mevcut oturumunu 30 güne kadar sürdürebilirdi.
+    # Reset = "beni her cihazdan çıkar" anlamına gelir.
+    from app.services.refresh_token_service import revoke_all_user_refreshes
+
+    await revoke_all_user_refreshes(db, user.id)
     return user
 
 

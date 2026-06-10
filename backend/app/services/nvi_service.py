@@ -41,6 +41,22 @@ _TR_UPPER_TRANSLATE = str.maketrans(
 )
 
 
+def mask_tc(tc: str) -> str:
+    """TC kimlik numarasını log için maskele: ilk 3 + son 2 görünür.
+
+    KVKK: TC kimlik numarası özel nitelikli kişisel veri sayılmasa da kimliği
+    doğrudan belirleyen bir veridir; log'larda (Render saklıyor) açık tutulmaz.
+    Örnek: '12345678901' → '123******01'. Beklenmeyen uzunluklarda tümünü
+    maskeler (sızıntı yerine güvenli taraf).
+    """
+    if not tc:
+        return "***"
+    digits = tc.strip()
+    if len(digits) != 11:
+        return "*" * len(digits)
+    return f"{digits[:3]}{'*' * 6}{digits[-2:]}"
+
+
 def turkish_upper(s: str) -> str:
     """e-Devlet/NVİ uyumlu Türkçe büyük harf dönüşümü.
 
@@ -98,9 +114,11 @@ async def verify_tc_with_nvi(
         APIError 503: NVİ'ye ulaşılamadı (network/SSL/timeout).
     """
     settings = get_settings()
+    # Log'larda TC açık tutulmaz (KVKK) — maskelenmiş değeri kullan.
+    tc_masked = mask_tc(tc_kimlik_no)
     if not settings.NVI_VERIFICATION_ENABLED:
         logger.info(
-            "NVİ doğrulaması KAPALI (dev modu) — TC=%s atlandı", tc_kimlik_no
+            "NVİ doğrulaması KAPALI (dev modu) — TC=%s atlandı", tc_masked
         )
         return True
 
@@ -124,7 +142,7 @@ async def verify_tc_with_nvi(
 
     logger.info(
         "NVİ isteği gönderiliyor — TC=%s Ad=%r Soyad=%r Yıl=%d",
-        tc_kimlik_no, ad, soyad, birth_year,
+        tc_masked, ad, soyad, birth_year,
     )
     # SOAP envelope'i log'a yaz — encoding/escape problemlerini görmek için.
     # PII içerdiği için sadece DEBUG seviyede, production'da gizli kalsın.
@@ -158,7 +176,7 @@ async def verify_tc_with_nvi(
     except httpx.TimeoutException as e:
         logger.error(
             "NVİ TIMEOUT (%ss) — TC=%s. Hata: %s",
-            settings.NVI_TIMEOUT_SECONDS, tc_kimlik_no, e,
+            settings.NVI_TIMEOUT_SECONDS, tc_masked, e,
             exc_info=True,
         )
         raise APIError(
@@ -168,7 +186,7 @@ async def verify_tc_with_nvi(
     except httpx.ConnectError as e:
         logger.error(
             "NVİ BAĞLANTI hatası (muhtemelen SSL/DNS) — TC=%s. Detay: %s",
-            tc_kimlik_no, e,
+            tc_masked, e,
             exc_info=True,
         )
         raise APIError(
@@ -181,7 +199,7 @@ async def verify_tc_with_nvi(
     except httpx.HTTPError as e:
         logger.error(
             "NVİ genel HTTP hatası — TC=%s type=%s detay=%s",
-            tc_kimlik_no, type(e).__name__, e,
+            tc_masked, type(e).__name__, e,
             exc_info=True,
         )
         raise APIError(
@@ -191,7 +209,7 @@ async def verify_tc_with_nvi(
     except Exception as e:  # noqa: BLE001
         logger.error(
             "NVİ BEKLENMEDİK hata — TC=%s type=%s detay=%s",
-            tc_kimlik_no, type(e).__name__, e,
+            tc_masked, type(e).__name__, e,
             exc_info=True,
         )
         raise APIError(
@@ -214,7 +232,7 @@ async def verify_tc_with_nvi(
         logger.error(
             "NVİ servisi SOAP yanıtı dönmedi — TC=%s. "
             "Response (ilk 1000 char):\n%s",
-            tc_kimlik_no, response.text[:1000],
+            tc_masked, response.text[:1000],
         )
         raise APIError(
             status_code=503,
@@ -222,13 +240,13 @@ async def verify_tc_with_nvi(
         )
 
     result = parse_nvi_response(response.text)
-    logger.info("NVİ sonucu — TC=%s → %s", tc_kimlik_no, result)
+    logger.info("NVİ sonucu — TC=%s → %s", tc_masked, result)
     if not result:
         # Servis çalıştı, ama bilgi eşleşmedi (kullanıcı yanlış bilgi verdi)
         logger.warning(
             "NVİ EŞLEŞMEDİ — TC=%s gönderilen Ad=%r Soyad=%r Yıl=%d.\n"
             "Full response (ilk 2000 char):\n%s",
-            tc_kimlik_no, ad, soyad, birth_year, response.text[:2000],
+            tc_masked, ad, soyad, birth_year, response.text[:2000],
         )
     return result
 

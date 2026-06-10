@@ -68,12 +68,12 @@ def _extract_request_context(request: Request | None) -> tuple[str | None, str |
     ua = request.headers.get("user-agent")
     if ua and len(ua) > 500:
         ua = ua[:500]
-    # X-Forwarded-For varsa ilkini al (orijinal client IP)
-    forwarded = request.headers.get("x-forwarded-for")
-    if forwarded:
-        ip = forwarded.split(",")[0].strip()
-    else:
-        ip = request.client.host if request.client else None
+    # Client IP'sini X-Forwarded-For'dan GÜVENLİ biçimde çıkar (sağdan,
+    # güvenilen proxy sayısı kadar). İlk girdiyi almak spoof'lanabilir —
+    # bkz. middleware.client_ip. Audit log'una sahte IP yazılmasını önler.
+    from app.core.middleware import client_ip  # döngü önleme için local import
+
+    ip = client_ip(request)
     return ua, ip
 
 
