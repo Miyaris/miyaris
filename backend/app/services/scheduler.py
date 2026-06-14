@@ -24,6 +24,7 @@ from app.models.auction import Auction, AuctionStatus
 from app.models.bid import Bid
 from app.models.escrow import EscrowTransaction
 from app.models.watch import Watch, WatchStatus
+from app.services import email_service
 from app.utils.commission import compute_tiered_commission
 from app.websockets.manager import manager
 
@@ -32,13 +33,21 @@ logger = logging.getLogger(__name__)
 TICK_SECONDS = 30
 
 
-async def _process_tick() -> list[tuple[str, dict[str, Any]]]:
-    """Tek tick: state geçişlerini DB'ye yaz, broadcast edilecek mesajları döndür.
+async def _process_tick() -> tuple[
+    list[tuple[str, dict[str, Any]]],
+    list[Any],
+]:
+    """Tek tick: state geçişlerini DB'ye yaz, broadcast + email iş listesi döndür.
 
-    Broadcast'i commit'ten sonra yapıyoruz ki client'lar yalnızca kalıcılaşan
-    state'i görsün.
+    Broadcast'i ve mail gönderimini commit'ten sonra yapıyoruz ki client'lar
+    yalnızca kalıcılaşan state'i görsün ve mail içeriği gerçekten oluşan
+    sonucu yansıtsın.
+
+    `pending_emails`: çağrılmaya hazır awaitable'lar (coroutine objeleri).
+    Loop, her birini fire-and-forget olarak başlatır.
     """
     pending_broadcasts: list[tuple[str, dict[str, Any]]] = []
+    pending_emails: list[Any] = []
 
     async with AsyncSessionLocal() as db:
         now = datetime.now(timezone.utc)
@@ -67,10 +76,15 @@ async def _process_tick() -> list[tuple[str, dict[str, Any]]]:
             )
 
         # 2) LIVE → ENDED (effective_end geçtiyse)
+        # selectinload zinciri: auction.watch.seller'a kadar — async path'te
+        # implicit lazy load `MissingGreenlet`e neden olur, email gönderimi
+        # için satıcı kullanıcısı önden çekilmeli.
         live = (
             await db.execute(
                 select(Auction)
-                .options(selectinload(Auction.watch))
+                .options(
+                    selectinload(Auction.watch).selectinload(Watch.seller)
+                )
                 .where(Auction.status == AuctionStatus.LIVE)
             )
         ).scalars().all()
@@ -80,10 +94,12 @@ async def _process_tick() -> list[tuple[str, dict[str, Any]]]:
             if effective_end > now:
                 continue
 
-            # Kazanan teklif — en yüksek tutar
+            # Kazanan teklif — en yüksek tutar. `bidder` eager load —
+            # winner email içeriği için ad/e-postaya ihtiyaç var.
             winning_bid = (
                 await db.execute(
                     select(Bid)
+                    .options(selectinload(Bid.bidder))
                     .where(Bid.auction_id == auction.id)
                     .order_by(Bid.amount.desc(), Bid.placed_at.asc())
                     .limit(1)
@@ -103,6 +119,16 @@ async def _process_tick() -> list[tuple[str, dict[str, Any]]]:
                 ):
                     logger.info(
                         "Auction %s ended below reserve, no sale", auction.id
+                    )
+                    # Reserve altında — alıcı yok, satıcıya "yeniden listele"
+                    # bilgisi gönderelim.
+                    pending_emails.append(
+                        email_service.send_auction_unsold_email(
+                            user=auction.watch.seller,
+                            watch_brand=auction.watch.brand,
+                            watch_model=auction.watch.model,
+                            auction_id=str(auction.id),
+                        )
                     )
                 else:
                     auction.winning_bid_id = winning_bid.id
@@ -125,8 +151,40 @@ async def _process_tick() -> list[tuple[str, dict[str, Any]]]:
                     logger.info(
                         "Auction %s sold for %s", auction.id, winning_bid.amount
                     )
+
+                    # Hem kazanan alıcıya hem satıcıya bildirim.
+                    # `Bid.bidder` ve `Watch.seller` zaten lazy="joined" ile
+                    # yüklü — ekstra sorgu yok.
+                    amount_str = f"{winning_bid.amount:,.0f}".replace(",", ".")
+                    pending_emails.append(
+                        email_service.send_auction_won_email(
+                            user=winning_bid.bidder,
+                            watch_brand=auction.watch.brand,
+                            watch_model=auction.watch.model,
+                            amount=amount_str,
+                            auction_id=str(auction.id),
+                        )
+                    )
+                    pending_emails.append(
+                        email_service.send_auction_sold_email(
+                            user=auction.watch.seller,
+                            watch_brand=auction.watch.brand,
+                            watch_model=auction.watch.model,
+                            amount=amount_str,
+                            auction_id=str(auction.id),
+                        )
+                    )
             else:
                 logger.info("Auction %s ended with no bids", auction.id)
+                # Teklif yok — satıcıya yeniden listeleme bilgisi.
+                pending_emails.append(
+                    email_service.send_auction_unsold_email(
+                        user=auction.watch.seller,
+                        watch_brand=auction.watch.brand,
+                        watch_model=auction.watch.model,
+                        auction_id=str(auction.id),
+                    )
+                )
 
             pending_broadcasts.append(
                 (
@@ -150,7 +208,7 @@ async def _process_tick() -> list[tuple[str, dict[str, Any]]]:
 
         await db.commit()
 
-    return pending_broadcasts
+    return pending_broadcasts, pending_emails
 
 
 async def scheduler_loop() -> None:
@@ -159,9 +217,14 @@ async def scheduler_loop() -> None:
     logger.info("Auction scheduler started (tick=%ds)", TICK_SECONDS)
     while True:
         try:
-            broadcasts = await _process_tick()
+            broadcasts, emails = await _process_tick()
             for room, message in broadcasts:
                 await manager.broadcast(room, message)
+            # Bildirim e-postaları — fire-and-forget; tek mailin patlaması
+            # diğerlerini ve loop'u etkilemesin (email_service zaten
+            # exception'ı log'layıp yutuyor).
+            for coro in emails:
+                asyncio.create_task(coro)
         except asyncio.CancelledError:
             logger.info("Auction scheduler stopping")
             raise

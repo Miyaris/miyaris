@@ -12,17 +12,23 @@ MVP: ödeme akışı mock — endpoint çağrıldığında hemen paid=True olur.
 """
 from __future__ import annotations
 
+import asyncio
+import logging
 import uuid
 from datetime import datetime, timezone
 
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 
 from app.core.config import get_settings
 from app.models.auction import Auction, AuctionStatus
 from app.models.auction_participant import AuctionParticipant
 from app.models.user import User
+from app.services import email_service
 from app.utils.exceptions import APIError, ConflictError, NotFoundError
+
+logger = logging.getLogger(__name__)
 
 
 async def get_or_create_participant(
@@ -119,9 +125,13 @@ async def pay_deposit(
             ),
         )
 
+    # `watch` eager load — email içeriği için brand/model gerek. Async
+    # path'te implicit lazy load `MissingGreenlet` atar.
     auction = (
         await db.execute(
-            select(Auction).where(Auction.id == auction_id)
+            select(Auction)
+            .options(selectinload(Auction.watch))
+            .where(Auction.id == auction_id)
         )
     ).scalar_one_or_none()
     if auction is None:
@@ -137,7 +147,7 @@ async def pay_deposit(
 
     participant = await get_or_create_participant(db, auction_id, user)
     if participant.deposit_paid:
-        # Idempotent — zaten ödenmiş, yeniden ücretlendirmeyiz
+        # Idempotent — zaten ödenmiş, yeniden ücretlendirmeyiz, email yok
         return participant
 
     participant.deposit_paid = True
@@ -145,4 +155,24 @@ async def pay_deposit(
     participant.deposit_provider_ref = provider_ref
     await db.commit()
     await db.refresh(participant)
+
+    # Onay maili — fire-and-forget. Hata olursa email_service log'lar,
+    # ödeme akışını bloklamaz. Tutar görüntüsü: 1000.00 → "1.000".
+    deposit_display = f"{participant.deposit_amount:,.0f}".replace(",", ".")
+    try:
+        asyncio.create_task(
+            email_service.send_deposit_confirmed_email(
+                user=user,
+                watch_brand=auction.watch.brand,
+                watch_model=auction.watch.model,
+                deposit_amount=deposit_display,
+                auction_id=str(auction_id),
+            )
+        )
+    except Exception:  # noqa: BLE001
+        logger.exception(
+            "[deposit_service] Onay maili scheduling hatası — user_id=%s",
+            user.id,
+        )
+
     return participant

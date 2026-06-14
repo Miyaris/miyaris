@@ -164,6 +164,164 @@ async def send_outbid_email(
     )
 
 
+async def send_auction_won_email(
+    *,
+    user: User,
+    watch_brand: str,
+    watch_model: str,
+    amount: str,
+    auction_id: str,
+) -> None:
+    """Müzayedeyi kazanan alıcıya tebrik ve ödeme yönlendirmesi.
+
+    Mail body içinde kazanan tutar + ödeme akışına (sipariş sayfası) link.
+    Scheduler auction ENDED transition'ında fire-and-forget çağırır; mail
+    hatası ekrandaki kazanma deneyimini bloklamaz.
+    """
+    settings = get_settings()
+    display_name = (user.first_name or "").strip() or user.full_name or "Üyemiz"
+    order_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/account/orders"
+    )
+    watch_label = f"{watch_brand} {watch_model}".strip()
+
+    html = _auction_won_html(
+        display_name=display_name,
+        watch_label=watch_label,
+        amount=amount,
+        order_url=order_url,
+    )
+    text = _auction_won_text(
+        display_name=display_name,
+        watch_label=watch_label,
+        amount=amount,
+        order_url=order_url,
+    )
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [user.email],
+            "subject": f"Tebrikler, kazandınız — {watch_label}",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
+async def send_auction_sold_email(
+    *,
+    user: User,
+    watch_brand: str,
+    watch_model: str,
+    amount: str,
+    auction_id: str,
+) -> None:
+    """Saatı satılan satıcıya bilgi ve teslimat/ödeme akışı yönlendirmesi."""
+    settings = get_settings()
+    display_name = (user.first_name or "").strip() or user.full_name or "Üyemiz"
+    sales_url = f"{settings.FRONTEND_URL.rstrip('/')}/account/sales"
+    watch_label = f"{watch_brand} {watch_model}".strip()
+
+    html = _auction_sold_html(
+        display_name=display_name,
+        watch_label=watch_label,
+        amount=amount,
+        sales_url=sales_url,
+    )
+    text = _auction_sold_text(
+        display_name=display_name,
+        watch_label=watch_label,
+        amount=amount,
+        sales_url=sales_url,
+    )
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [user.email],
+            "subject": f"Saatınız satıldı — {watch_label}",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
+async def send_auction_unsold_email(
+    *,
+    user: User,
+    watch_brand: str,
+    watch_model: str,
+    auction_id: str,
+) -> None:
+    """Saatı satılamayan satıcıya: yeniden listeleme önerisi."""
+    settings = get_settings()
+    display_name = (user.first_name or "").strip() or user.full_name or "Üyemiz"
+    sell_new_url = f"{settings.FRONTEND_URL.rstrip('/')}/sell/new"
+    watch_label = f"{watch_brand} {watch_model}".strip()
+
+    html = _auction_unsold_html(
+        display_name=display_name,
+        watch_label=watch_label,
+        sell_new_url=sell_new_url,
+    )
+    text = _auction_unsold_text(
+        display_name=display_name,
+        watch_label=watch_label,
+        sell_new_url=sell_new_url,
+    )
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [user.email],
+            "subject": f"Müzayedeniz teklifsiz tamamlandı — {watch_label}",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
+async def send_deposit_confirmed_email(
+    *,
+    user: User,
+    watch_brand: str,
+    watch_model: str,
+    deposit_amount: str,
+    auction_id: str,
+) -> None:
+    """Kapora ödendiğinde kullanıcıya teyit + müzayede linkini gönder."""
+    settings = get_settings()
+    display_name = (user.first_name or "").strip() or user.full_name or "Üyemiz"
+    auction_url = (
+        f"{settings.FRONTEND_URL.rstrip('/')}/auctions/{auction_id}"
+    )
+    watch_label = f"{watch_brand} {watch_model}".strip()
+
+    html = _deposit_confirmed_html(
+        display_name=display_name,
+        watch_label=watch_label,
+        deposit_amount=deposit_amount,
+        auction_url=auction_url,
+    )
+    text = _deposit_confirmed_text(
+        display_name=display_name,
+        watch_label=watch_label,
+        deposit_amount=deposit_amount,
+        auction_url=auction_url,
+    )
+
+    await _send(
+        {
+            "from": settings.EMAIL_FROM,
+            "to": [user.email],
+            "subject": f"Kaporanız alındı — {watch_label}",
+            "html": html,
+            "text": text,
+        }
+    )
+
+
 async def send_admin_new_registration_email(user: User) -> None:
     """Yeni kayıt sonrası ADMIN_EMAILS listesindeki tüm admin'lere bildirim.
 
@@ -395,6 +553,176 @@ def _outbid_text(
         f"teklif geçildi. Yeni en yüksek teklif: ${new_amount}.\n\n"
         "Müzayede henüz açık — liderliği geri almak için yeni bir teklif "
         f"verebilirsiniz:\n{auction_url}\n\n"
+        "— Miyaris"
+    )
+
+
+def _auction_won_html(
+    *, display_name: str, watch_label: str, amount: str, order_url: str
+) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Müzayede Sonucu</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 16px 0;line-height:1.3;">Tebrikler, {display_name} — Kazandınız</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  <strong style="color:#1F1F23;">{watch_label}</strong> müzayedesinde en yüksek teklifi siz verdiniz. Saatınız sizin için ayrıldı; ödeme adımıyla teslimat süreci başlayacak.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 28px 0;">
+  <tr>
+    <td style="padding:18px 22px;background-color:#F8F6F0;border-left:3px solid #B8A179;">
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;">Kazanan Teklif</p>
+      <p style="margin:0;font-size:22px;color:#1F1F23;font-weight:500;">${amount}</p>
+    </td>
+  </tr>
+</table>
+<p style="font-size:14px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  Sonraki adım: ödeme yöntemini ve teslimatı sipariş sayfasından tamamlayın. Ödeme, ekspertizden geçtikten sonra satıcıya aktarılır — Güvenli Kasa kapsamında korumadasınız.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{order_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Siparişe Git</a>
+    </td>
+  </tr>
+</table>
+<p style="font-size:12px;line-height:1.7;color:#6B6B70;margin:24px 0 0 0;border-top:1px solid #ECEAE3;padding-top:20px;">
+  Ödeme adımını 48 saat içinde tamamlamanız beklenir. Aksi halde teklifiniz kaybedilebilir.
+</p>"""
+    return _BASE_WRAPPER.format(title="Müzayedeyi Kazandınız", body=body)
+
+
+def _auction_won_text(
+    *, display_name: str, watch_label: str, amount: str, order_url: str
+) -> str:
+    return (
+        f"Tebrikler {display_name},\n\n"
+        f"{watch_label} müzayedesinde ${amount} teklifle KAZANDINIZ.\n\n"
+        "Sonraki adım: ödeme ve teslimat seçimini sipariş sayfasından "
+        f"tamamlayın.\n{order_url}\n\n"
+        "Ödeme 48 saat içinde tamamlanmalı.\n\n"
+        "— Miyaris"
+    )
+
+
+def _auction_sold_html(
+    *, display_name: str, watch_label: str, amount: str, sales_url: str
+) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Satış Tamamlandı</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 16px 0;line-height:1.3;">Saatınız Satıldı, {display_name}</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  <strong style="color:#1F1F23;">{watch_label}</strong> müzayedeniz tamamlandı. Alıcı belirlendi; ödeme sürecini onlar başlatacak.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 28px 0;">
+  <tr>
+    <td style="padding:18px 22px;background-color:#F8F6F0;border-left:3px solid #B8A179;">
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;">Satış Bedeli</p>
+      <p style="margin:0;font-size:22px;color:#1F1F23;font-weight:500;">${amount}</p>
+    </td>
+  </tr>
+</table>
+<p style="font-size:14px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  Sonraki adım: alıcı ödemeyi yaptıktan sonra saat ekspertiz akışına alınır. Onay sonrası bedel, komisyon düşülerek hesabınıza geçer.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{sales_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Satışlarımı Görüntüle</a>
+    </td>
+  </tr>
+</table>
+<p style="font-size:12px;line-height:1.7;color:#6B6B70;margin:24px 0 0 0;border-top:1px solid #ECEAE3;padding-top:20px;">
+  Saat hazırlığı ve teslimat akışı için talimatlar satışlar sayfanızda görünür olacak.
+</p>"""
+    return _BASE_WRAPPER.format(title="Saatınız Satıldı", body=body)
+
+
+def _auction_sold_text(
+    *, display_name: str, watch_label: str, amount: str, sales_url: str
+) -> str:
+    return (
+        f"Merhaba {display_name},\n\n"
+        f"{watch_label} müzayedeniz ${amount} bedelle tamamlandı.\n\n"
+        "Alıcı ödemeyi başlatacak. Ekspertiz onayından sonra bedel, "
+        "komisyon düşülerek hesabınıza geçer.\n\n"
+        f"Satışlarım: {sales_url}\n\n"
+        "— Miyaris"
+    )
+
+
+def _auction_unsold_html(
+    *, display_name: str, watch_label: str, sell_new_url: str
+) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Müzayede Sonucu</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 16px 0;line-height:1.3;">Merhaba {display_name},</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  <strong style="color:#1F1F23;">{watch_label}</strong> müzayedeniz yeterli teklif almadan kapandı. Bu, fiyat beklentisi veya zamanlamayla ilgili olabilir — saatınız hâlâ değerli.
+</p>
+<p style="font-size:14px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  Aynı saat için fiyat veya minimum açılış değerini güncelleyerek bir sonraki haftalık müzayedeye listeyebilirsiniz. Pazarın hareketini yakından izlemekte fayda var.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{sell_new_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Yeniden Listele</a>
+    </td>
+  </tr>
+</table>"""
+    return _BASE_WRAPPER.format(title="Müzayede Tamamlandı", body=body)
+
+
+def _auction_unsold_text(
+    *, display_name: str, watch_label: str, sell_new_url: str
+) -> str:
+    return (
+        f"Merhaba {display_name},\n\n"
+        f"{watch_label} müzayedeniz yeterli teklif almadan kapandı.\n"
+        "Bir sonraki müzayedeye yeniden listeyebilirsiniz.\n\n"
+        f"Yeniden listele: {sell_new_url}\n\n"
+        "— Miyaris"
+    )
+
+
+def _deposit_confirmed_html(
+    *, display_name: str, watch_label: str, deposit_amount: str, auction_url: str
+) -> str:
+    body = f"""\
+<p style="font-size:14px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;margin:0 0 16px 0;">Katılım Onayı</p>
+<h1 style="font-family:'Cormorant Garamond','Times New Roman',serif;font-size:28px;font-weight:500;color:#1F1F23;margin:0 0 16px 0;line-height:1.3;">Kaporanız Alındı, {display_name}</h1>
+<p style="font-size:15px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  <strong style="color:#1F1F23;">{watch_label}</strong> müzayedesi için kaporanız onaylandı. Artık teklif verme hakkınız aktif — istediğiniz an müzayedeye katılabilirsiniz.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="width:100%;margin:0 0 28px 0;">
+  <tr>
+    <td style="padding:18px 22px;background-color:#F8F6F0;border-left:3px solid #B8A179;">
+      <p style="margin:0 0 4px 0;font-size:11px;letter-spacing:2px;color:#B8A179;text-transform:uppercase;">Yatırılan Kapora</p>
+      <p style="margin:0;font-size:22px;color:#1F1F23;font-weight:500;">{deposit_amount} TL</p>
+    </td>
+  </tr>
+</table>
+<p style="font-size:14px;line-height:1.7;color:#1F1F23;margin:0 0 24px 0;">
+  Kapora müzayede sonrası iade edilir. Yalnızca kazanan teklifi ödemediği durumda kapora alıkonulur — bu süreç anti-troll güvencesinin parçasıdır.
+</p>
+<table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto 24px auto;">
+  <tr>
+    <td align="center" bgcolor="#1F1F23" style="border-radius:2px;">
+      <a href="{auction_url}" target="_blank" style="display:inline-block;padding:14px 36px;font-size:13px;letter-spacing:3px;color:#FFFFFF;text-decoration:none;text-transform:uppercase;font-weight:500;">Müzayedeye Git</a>
+    </td>
+  </tr>
+</table>"""
+    return _BASE_WRAPPER.format(title="Kapora Alındı", body=body)
+
+
+def _deposit_confirmed_text(
+    *, display_name: str, watch_label: str, deposit_amount: str, auction_url: str
+) -> str:
+    return (
+        f"Merhaba {display_name},\n\n"
+        f"{watch_label} müzayedesi için {deposit_amount} TL kaporanız "
+        "alındı. Teklif verme hakkınız aktif.\n\n"
+        f"Müzayedeye git: {auction_url}\n\n"
+        "Kapora müzayede sonrası iade edilir. Yalnızca kazanan teklifi "
+        "ödemediği durumda alıkonulur.\n\n"
         "— Miyaris"
     )
 
