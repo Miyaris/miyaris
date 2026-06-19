@@ -5,19 +5,19 @@ import { useState, type FormEvent } from "react";
 
 import { FileUploader } from "@/components/shared/FileUploader";
 import { Button } from "@/components/ui/Button";
-import type { AuthenticityVerdict } from "@/lib/types";
+import type { AuthenticityKarar } from "@/lib/types";
 
-interface VerdictOption {
-  value: AuthenticityVerdict;
+interface KararOption {
+  value: AuthenticityKarar;
   label: string;
   effect: string;
   destructive?: boolean;
 }
 
-const VERDICT_OPTIONS: VerdictOption[] = [
+const VERDICT_OPTIONS: KararOption[] = [
   {
     value: "authentic",
-    label: "Orijinal — Partner Mağaza Onaylı",
+    label: "Orijinal — Anlaşmalı Mağaza Onaylı",
     effect: "Saat onaylanır; Müzayede ve Miyaris Mağaza için yayına hazır olur.",
   },
   {
@@ -42,7 +42,7 @@ const VERDICT_OPTIONS: VerdictOption[] = [
 
 export function CertificateForm({ watchId }: { watchId: string }) {
   const router = useRouter();
-  const [verdict, setVerdict] = useState<AuthenticityVerdict>("authentic");
+  const [verdict, setKarar] = useState<AuthenticityKarar>("authentic");
   const [notes, setNotes] = useState("");
   const [pdfUrl, setPdfUrl] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -89,7 +89,7 @@ export function CertificateForm({ watchId }: { watchId: string }) {
     >
       <div>
         <span className="eyebrow text-charcoal mb-1 block">
-          Ekspertiz Onayı (Partner Mağaza Teyidi)
+          Ekspertiz Onayı (Anlaşmalı Mağaza Teyidi)
         </span>
         <p className="text-xs text-charcoal-300 leading-relaxed">
           Anlaşmalı saatçi partnerinden fiziksel inceleme sonucu geldikten
@@ -99,7 +99,7 @@ export function CertificateForm({ watchId }: { watchId: string }) {
       </div>
 
       <div>
-        <span className="eyebrow block mb-3">Partner Mağaza Verdict</span>
+        <span className="eyebrow block mb-3">Anlaşmalı Mağaza Karar</span>
         <div className="space-y-2">
           {VERDICT_OPTIONS.map((opt) => {
             const isSelected = verdict === opt.value;
@@ -121,7 +121,7 @@ export function CertificateForm({ watchId }: { watchId: string }) {
                   value={opt.value}
                   checked={isSelected}
                   onChange={(e) =>
-                    setVerdict(e.target.value as AuthenticityVerdict)
+                    setKarar(e.target.value as AuthenticityKarar)
                   }
                   className={`mt-1 ${opt.destructive ? "accent-burgundy" : "accent-charcoal"}`}
                 />
@@ -153,7 +153,7 @@ export function CertificateForm({ watchId }: { watchId: string }) {
           rows={4}
           required
           minLength={10}
-          placeholder="Partner ekspert notları: hareket numarası, kasanın durumu, müdahale belirtileri, parça orijinalliği, kutu/kağıt uyumu..."
+          placeholder="Anlaşmalı eksper notları: hareket numarası, kasanın durumu, müdahale belirtileri, parça orijinalliği, kutu/kağıt uyumu..."
           className="block w-full border border-line p-3 text-sm bg-transparent focus:outline-none focus:border-brass transition-colors leading-relaxed"
         />
       </div>
@@ -161,7 +161,7 @@ export function CertificateForm({ watchId }: { watchId: string }) {
       <div>
         <span className="eyebrow block mb-2">Ekspertiz Belgesi</span>
         <p className="text-xs text-charcoal-300 mb-3 leading-relaxed">
-          Partner mağaza tarafından imzalanmış ekspertiz raporunu yükleyin —
+          Anlaşmalı mağaza tarafından imzalanmış ekspertiz raporunu yükleyin —
           PDF veya fotoğraf olabilir. Telefondan çekip doğrudan
           ekleyebilirsiniz.
         </p>

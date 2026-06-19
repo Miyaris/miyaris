@@ -245,7 +245,7 @@ async def list_active_escrow(
     db: AsyncSession = Depends(get_db),
     pagination: PaginationParams = Depends(pagination_dep),
 ):
-    """Aktif escrow akışları (RELEASED/REFUNDED hariç)."""
+    """Aktif Güvenli Kasa akışları (RELEASED/REFUNDED hariç)."""
     rows = await escrow_service.list_admin_active(
         db, limit=pagination.limit, offset=pagination.offset
     )
@@ -490,7 +490,7 @@ async def hard_delete_user(
             "Silmek yerine 'Pasifleştir' kullanın."
         )
 
-    # Aktif escrow varsa engelle (RELEASED/REFUNDED dışında olan)
+    # Aktif Güvenli Kasa kaydı varsa engelle (SERBEST BIRAKILDI/İADE EDİLDİ dışında)
     escrow_count = (
         await db.execute(
             select(func.count(EscrowTransaction.id)).where(
@@ -560,7 +560,7 @@ async def list_admin_auctions(
         from fastapi import status as http_status
         raise APIError(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Geçersiz tab — active/past/hidden olmalı",
+            detail='Geçersiz sekme. Beklenen değerler: "active", "past" veya "hidden"',
         )
     auctions = await auction_service.list_admin_auctions(
         db, tab=tab, limit=pagination.limit, offset=pagination.offset
@@ -673,7 +673,7 @@ async def list_admin_sessions(
 
         raise APIError(
             status_code=http_status.HTTP_400_BAD_REQUEST,
-            detail="Geçersiz tab — active/past/hidden olmalı",
+            detail='Geçersiz sekme. Beklenen değerler: "active", "past" veya "hidden"',
         )
     sessions = await presenter_service.admin_list_sessions(
         db, tab=tab, limit=pagination.limit, offset=pagination.offset

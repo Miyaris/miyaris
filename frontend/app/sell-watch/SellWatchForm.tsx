@@ -399,7 +399,7 @@ function ListingTypeChooser({
       id: "auction",
       title: "Açık Artırma",
       body:
-        "Haftalık müzayedeye katılır. Önce partner mağaza ekspertizinden geçer, sonra Pazartesi başlar.",
+        "Haftalık müzayedeye katılır. Önce anlaşmalı mağaza ekspertizinden geçer, sonra Pazartesi başlar.",
     },
     {
       id: "direct_sale",
@@ -459,7 +459,7 @@ function ExpertiseFlowNotice({ listingType }: { listingType: ListingType }) {
         </span>
         <p className="text-sm text-charcoal-700 leading-relaxed">
           Açık artırma ilanlarınız <strong>Ön Ekspertiz</strong> aşamasında
-          başlar. Saatinizi partner mağazaya teslim edip uzman onayını
+          başlar. Saatinizi anlaşmalı mağazaya teslim edip uzman onayını
           aldıktan sonra ilan haftalık müzayede planına alınır.
         </p>
       </div>
@@ -473,7 +473,7 @@ function ExpertiseFlowNotice({ listingType }: { listingType: ListingType }) {
       <p className="text-sm text-charcoal-700 leading-relaxed">
         Direkt satış ilanları anında yayına alınır. Alıcı &ldquo;Hemen
         Al&rdquo; dediğinde saat <strong>Ekspertiz Bekliyor</strong>{" "}
-        aşamasına geçer; partner mağaza onayından sonra alıcıya kargolanır.
+        aşamasına geçer; anlaşmalı mağaza onayından sonra alıcıya kargolanır.
       </p>
     </div>
   );

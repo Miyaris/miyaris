@@ -14,7 +14,7 @@ const AUCTION_STEPS: Step[] = [
   {
     num: "01",
     title: "Ön Ekspertiz",
-    body: "Müzayedeye girecek saatler önce partner mağazaya teslim edilir. Uzmanlar saatin orijinalliğini fiziksel olarak doğrular; ilanınız o ana kadar Ön Ekspertiz aşamasında bekler. Onay alındığında otomatik olarak haftalık müzayede planına alınır.",
+    body: "Müzayedeye girecek saatler önce anlaşmalı mağazaya teslim edilir. Uzmanlar saatin orijinalliğini fiziksel olarak doğrular; ilanınız o ana kadar Ön Ekspertiz aşamasında bekler. Onay alındığında otomatik olarak haftalık müzayede planına alınır.",
   },
   {
     num: "02",
@@ -24,7 +24,7 @@ const AUCTION_STEPS: Step[] = [
   {
     num: "03",
     title: "Güvenli Kasa & Teslimat",
-    body: "Kazanan alıcı ödemeyi Miyaris Güvenli Kasa hesabına yapar. Saat partner mağaza üzerinden bir kez daha kontrol edilir, sonra alıcıya kargolanır veya mağazadan teslim edilir. Para ancak teslim onayıyla satıcıya aktarılır.",
+    body: "Kazanan alıcı ödemeyi Miyaris Güvenli Kasa hesabına yapar. Saat anlaşmalı mağaza üzerinden bir kez daha kontrol edilir, sonra alıcıya kargolanır veya mağazadan teslim edilir. Para ancak teslim onayıyla satıcıya aktarılır.",
   },
 ];
 
@@ -37,7 +37,7 @@ const DIRECT_SALE_STEPS: Step[] = [
   {
     num: "02",
     title: "Satış Sonrası Ekspertiz",
-    body: "Satış gerçekleşince saat Ekspertiz Bekliyor aşamasına alınır. Partner mağazaya teslim eder, uzman onayını burada alırsınız. Onaylanmadan alıcıya kargolanmaz, satıcıya da ödeme yapılmaz — alıcı 100% güvendedir.",
+    body: "Satış gerçekleşince saat Ekspertiz Bekliyor aşamasına alınır. Anlaşmalı mağazaya teslim eder, uzman onayını burada alırsınız. Onaylanmadan alıcıya kargolanmaz, satıcıya da ödeme yapılmaz — alıcı 100% güvendedir.",
   },
   {
     num: "03",
@@ -81,7 +81,7 @@ export default function HowItWorksPage() {
               Miyaris saatinizi iki farklı yolla satabilmenizi sağlar:
               haftalık müzayede ile rekabetin maksimum bedeli oluşturmasına
               izin verin, ya da Miyaris Mağaza'da sabit fiyatla hemen
-              listeleyin. Her iki akışta da partner mağaza ekspertizi ve
+              listeleyin. Her iki akışta da anlaşmalı mağaza ekspertizi ve
               Güvenli Kasa zorunludur — yalnızca zamanlaması değişir.
             </p>
           </div>
@@ -203,7 +203,7 @@ export default function HowItWorksPage() {
           <Pillar
             label="Güvenli Kasa"
             title="Emanet Koruması"
-            body="Alıcının ödemesi Miyaris emanet hesabında tutulur. Saat alıcıya ulaşıp doğrulanmadan satıcıya transfer edilmez; partner mağaza zinciri her teslimde fiziksel mühür kontrolü yapar."
+            body="Alıcının ödemesi Miyaris emanet hesabında tutulur. Saat alıcıya ulaşıp doğrulanmadan satıcıya transfer edilmez; anlaşmalı mağaza zinciri her teslimde fiziksel mühür kontrolü yapar."
           />
           <Pillar
             label="EFT Avantajı"

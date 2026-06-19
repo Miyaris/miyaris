@@ -25,7 +25,7 @@ const AUCTION_STEPS: Step[] = [
   {
     key: "awaiting_authentication",
     title: "Saat Doğrulamada",
-    description: "Partner mağaza ekspertizi başladı",
+    description: "Anlaşmalı mağaza ekspertizi başladı",
   },
   {
     key: "authenticated",
@@ -52,7 +52,7 @@ const AUCTION_STEPS: Step[] = [
 /**
  * DIRECT_SALE akışı — alıcı "Hemen Al" deyince escrow yaratılır, saat henüz
  * ekspertize gitmemiştir. Bu nedenle ön adım copy'leri farklı: satıcı saati
- * partner mağazaya teslim eder, sonra eksper doğrular.
+ * anlaşmalı mağazaya teslim eder, sonra eksper doğrular.
  */
 const DIRECT_SALE_STEPS: Step[] = [
   {
@@ -69,7 +69,7 @@ const DIRECT_SALE_STEPS: Step[] = [
   {
     key: "awaiting_authentication",
     title: "Satıcı Saati Mağazaya Teslim Ediyor",
-    description: "Partner mağaza ekspertiz için saati bekliyor",
+    description: "Anlaşmalı mağaza ekspertiz için saati bekliyor",
   },
   {
     key: "authenticated",

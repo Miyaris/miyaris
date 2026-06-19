@@ -179,7 +179,7 @@ export function NewSessionForm() {
         </p>
         <p className="text-sm text-charcoal-700 tabular-nums">{preview}</p>
         <p className="mt-1 text-[11px] text-charcoal-300 leading-relaxed">
-          Oturum public sayfada bu tarihte planlanmış olarak görünür. Canlıya
+          Oturum herkese açık sayfada bu tarihte planlanmış olarak görünür. Canlıya
           almak için "Yayına Başla" butonuna basacaksın.
         </p>
       </div>

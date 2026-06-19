@@ -119,16 +119,16 @@ async def rotate_refresh(
         raise InvalidRefreshTokenError("JWT decode başarısız") from e
 
     if payload.get("type") != "refresh":
-        raise InvalidRefreshTokenError("Token tipi 'refresh' değil")
+        raise InvalidRefreshTokenError("Belirteç türü yenileme değil")
 
     jti = payload.get("jti")
     sub = payload.get("sub")
     if not jti or not sub:
-        raise InvalidRefreshTokenError("Token'da jti veya sub eksik")
+        raise InvalidRefreshTokenError("Belirteçte tanımlayıcı veya kullanıcı kimliği eksik")
     try:
         user_id = uuid.UUID(sub)
     except (ValueError, TypeError) as e:
-        raise InvalidRefreshTokenError("sub geçersiz UUID") from e
+        raise InvalidRefreshTokenError("Kullanıcı kimliği geçersiz") from e
 
     # DB lookup — jti unique
     result = await db.execute(
@@ -145,7 +145,7 @@ async def rotate_refresh(
             jti, user_id,
         )
         await _revoke_all_user_refreshes(db, user_id)
-        raise InvalidRefreshTokenError("Refresh token kayıtlı değil")
+        raise InvalidRefreshTokenError("Yenileme belirteci kayıtlı değil")
 
     if record.user_id != user_id:
         # JWT içindeki sub ile DB row'undaki user_id uyuşmuyor — token forge
@@ -153,7 +153,7 @@ async def rotate_refresh(
             "Refresh token user mismatch: jti=%s jwt_sub=%s db_user=%s",
             jti, user_id, record.user_id,
         )
-        raise InvalidRefreshTokenError("Token sahibi uyuşmuyor")
+        raise InvalidRefreshTokenError("Belirteç sahibi uyuşmuyor")
 
     if record.revoked_at is not None:
         # Bu token revoke edilmiş. İki olasılık var:
@@ -178,8 +178,8 @@ async def rotate_refresh(
                 int(revoked_age.total_seconds()), jti, user_id,
             )
             raise InvalidRefreshTokenError(
-                "Refresh token zaten yenilenmiş (race condition) — yeni "
-                "token'ı kullanın"
+                "Yenileme belirteci zaten yenilenmiş (eş zamanlı talep) — "
+                "yeni belirteci kullanın"
             )
 
         logger.warning(
@@ -189,7 +189,7 @@ async def rotate_refresh(
         )
         await _revoke_all_user_refreshes(db, user_id)
         raise RefreshTokenReuseError(
-            "Refresh token zaten kullanılmış — güvenlik nedeniyle tüm "
+            "Yenileme belirteci zaten kullanılmış — güvenlik nedeniyle tüm "
             "oturumlar sonlandırıldı. Lütfen tekrar giriş yapın."
         )
 
@@ -201,7 +201,7 @@ async def rotate_refresh(
     if expires_at.tzinfo is None:
         expires_at = expires_at.replace(tzinfo=timezone.utc)
     if expires_at < now:
-        raise InvalidRefreshTokenError("Refresh token süresi dolmuş")
+        raise InvalidRefreshTokenError("Yenileme belirtecinin süresi dolmuş")
 
     # === Rotation ===
     settings = get_settings()

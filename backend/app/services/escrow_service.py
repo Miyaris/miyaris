@@ -65,7 +65,7 @@ async def _load_with_users(
         await db.execute(_query_with_relations().where(EscrowTransaction.id == escrow_id))
     ).scalar_one_or_none()
     if not escrow:
-        raise NotFoundError("Escrow bulunamadı")
+        raise NotFoundError("Güvenli Kasa kaydı bulunamadı")
 
     users = (
         await db.execute(
@@ -181,7 +181,7 @@ def compute_discount(amount: Decimal, payment_method: PaymentMethod) -> Decimal:
 async def fund(
     db: AsyncSession, escrow_id: uuid.UUID, user: User, payload: FundRequest
 ) -> EscrowTransaction:
-    """Buyer ödemeyi tamamladı — PENDING_PAYMENT → FUNDED.
+    """Alıcı ödemeyi tamamladı — PENDING_PAYMENT → FUNDED.
 
     Alıcının 3 seçimi bu noktada bağlanır:
       - delivery_method: SHIPPING / STORE_PICKUP
@@ -278,9 +278,9 @@ async def refund(
     """
     escrow, _, _ = await _load_with_users(db, escrow_id)
     if escrow.status == EscrowStatus.RELEASED:
-        raise ConflictError("RELEASED escrow için iade chargeback gerektirir")
+        raise ConflictError("SERBEST BIRAKILMIŞ Güvenli Kasa için iade kart iadesi süreci gerektirir")
     if escrow.status == EscrowStatus.REFUNDED:
-        raise ConflictError("Escrow zaten iade edildi")
+        raise ConflictError("Güvenli Kasa zaten iade edildi")
 
     escrow.status = EscrowStatus.REFUNDED
     await db.commit()

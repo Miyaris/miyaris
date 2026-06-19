@@ -45,7 +45,7 @@ async def register(
 
 @router.get("/verify-email", response_model=EmailVerifyResponse)
 async def verify_email(
-    token: str = Query(..., description="Kayıt mailindeki JWT doğrulama token'ı"),
+    token: str = Query(..., description="Kayıt mailindeki JWT doğrulama belirteci"),
     db: AsyncSession = Depends(get_db),
 ):
     """E-posta doğrulama linkini işle.

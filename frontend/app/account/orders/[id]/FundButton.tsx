@@ -120,8 +120,8 @@ export function FundButton({ escrowId, amount }: Props) {
               : "Önce ödeme yöntemini seçin"}
       </Button>
       <p className="text-xs text-charcoal-300 leading-relaxed">
-        ⓘ Demo modunda gerçek ödeme alınmaz. Production'da kredi kartı için
-        iyzico üzerinden, EFT için IBAN bilgileri ile devam edilir.
+        ⓘ Deneme modunda gerçek ödeme alınmaz. Canlı yayında kredi kartı için
+        iyzico üzerinden, havale için IBAN bilgileri ile devam edilir.
       </p>
     </div>
   );

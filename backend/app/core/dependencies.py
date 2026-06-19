@@ -35,7 +35,7 @@ async def get_current_user(
         raise _AuthError()
 
     if payload.get("type") != "access":
-        raise _AuthError("Yanlış token tipi")
+        raise _AuthError("Yanlış belirteç türü")
 
     user_id = payload.get("sub")
     if not user_id:

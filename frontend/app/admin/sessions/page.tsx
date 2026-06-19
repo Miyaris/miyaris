@@ -14,7 +14,7 @@ const TAB_META: Record<Tab, { label: string; description: string }> = {
   active: {
     label: "Aktif",
     description:
-      "Hazırlanıyor + canlı oturumlar. 'Kaldır' public sayfadan gizler, 'İptal' presenter'ın oturumunu durdurur.",
+      "Hazırlanıyor + canlı oturumlar. 'Kaldır' herkese açık sayfadan gizler, 'İptal' sunucunun oturumunu durdurur.",
   },
   past: {
     label: "Geçmiş",
@@ -24,7 +24,7 @@ const TAB_META: Record<Tab, { label: string; description: string }> = {
   hidden: {
     label: "Gizli",
     description:
-      "Public sayfadan kaldırılmış oturumlar. 'Geri Getir' ile yeniden listeye alınır.",
+      "Herkese açık sayfadan kaldırılmış oturumlar. 'Geri Getir' ile yeniden listeye alınır.",
   },
 };
 

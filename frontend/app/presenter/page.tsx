@@ -82,7 +82,7 @@ export default async function PresenterHubPage() {
           </div>
           <p className="mt-4 text-sm text-charcoal-500 max-w-2xl leading-relaxed">
             Bir oturum aç, içine birden çok saat ekle, ardından canlı sunucu
-            ekranı üzerinden sırayla satış yap. Public sayfada oturumun adı
+            ekranı üzerinden sırayla satış yap. Herkese açık sayfada oturumun adı
             altında listelenir.
           </p>
         </header>

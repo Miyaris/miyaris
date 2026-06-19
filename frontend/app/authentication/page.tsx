@@ -25,9 +25,9 @@ const STAGES: Stage[] = [
   {
     num: "01",
     eyebrow: "Teslim",
-    title: "Partner Mağazaya Fiziki Teslim",
+    title: "Anlaşmalı Mağazaya Fiziki Teslim",
     intro:
-      "Satıcı saatini partner mağazamıza şahsen veya sigortalı kargoyla teslim eder. Bu adım Miyaris sertifikasyonun başlangıç noktasıdır — fotoğraf üzerinden değerlendirme yapılmaz, her parça uzmanın elinden geçer.",
+      "Satıcı saatini anlaşmalı mağazamıza şahsen veya sigortalı kargoyla teslim eder. Bu adım Miyaris sertifikasyonun başlangıç noktasıdır — fotoğraf üzerinden değerlendirme yapılmaz, her parça uzmanın elinden geçer.",
     checklist: [
       {
         title: "Kimlik & sahiplik teyidi",
@@ -227,7 +227,7 @@ export default function AuthenticationPage() {
             Saatiniz hazırsa, biz hazırız.
           </h2>
           <p className="text-charcoal-500 max-w-xl mx-auto mb-10 leading-relaxed">
-            İlanınızı oluşturun — partner mağaza koordinatlarımızı paylaşalım,
+            İlanınızı oluşturun — anlaşmalı mağaza koordinatlarımızı paylaşalım,
             sertifikasyon sürecini birlikte başlatalım.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">

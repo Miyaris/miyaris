@@ -38,7 +38,7 @@
 
 ## 2. Sözleşmenin Konusu
 
-Alıcı'nın Platform üzerinden seçtiği ve aşağıda nitelikleri belirtilen ürünün satışı ve teslimi.
+Alıcı'nın Site üzerinden seçtiği ve aşağıda nitelikleri belirtilen ürünün satışı ve teslimi.
 
 ### Ürün Bilgileri
 
@@ -92,22 +92,22 @@ Bu sözleşmede belirtilen tutar **alıcının ödediği nihai tutardır**. Arac
 ### 4.1 Süreç
 
 1. **Adım 1 (T+0):** Alıcı ödemeyi yapar. Tutar Güvenli Kasa'ya aktarılır.
-2. **Adım 2 (T+0..3 gün):** Satıcı saati Partner Mağaza'ya gönderir (kargo Satıcı tarafından).
-3. **Adım 3 (T+5..7 gün):** Partner Mağaza saati fiziksel olarak inceler:
+2. **Adım 2 (T+0..3 gün):** Satıcı saati Ortak Mağaza'ya gönderir (kargo Satıcı tarafından).
+3. **Adım 3 (T+5..7 gün):** Ortak Mağaza saati fiziksel olarak inceler:
    - **Orijinal çıkarsa:** Saat Alıcı'ya kargolanır, Güvenli Kasa Satıcı'ya aktarılır.
    - **Orijinal çıkmazsa veya kusur tespit edilirse:** Saat Satıcı'ya iade edilir, Güvenli Kasa Alıcı'ya iade edilir.
 4. **Adım 4 (T+10..14 gün):** Alıcı saati teslim alır. Teslim alındığı anda satış kesinleşir.
 
 ### 4.2 Teslimat süresi
 
-Toplam teslimat süresi **10-14 iş günüdür**. Bu süre Partner Mağaza ekspertiz süresi ve kargo süresinin toplamıdır.
+Toplam teslimat süresi **10-14 iş günüdür**. Bu süre Ortak Mağaza ekspertiz süresi ve kargo süresinin toplamıdır.
 
 [AVUKAT NOTU: TKHK md. 6 — taahhüt edilen sürede teslim edilmemesi halinde tüketici cayma hakkına sahiptir. Yazılı süre 30 gün olarak ifade edilmeli mi?]
 
 ### 4.3 Kargo
 
-- Kargo şirketi: Aras Kargo / Yurtiçi Kargo (Platform seçimine göre)
-- **Sigortalıdır** — kayıp veya hasarda Platform sorumludur
+- Kargo şirketi: Aras Kargo / Yurtiçi Kargo (Site seçimine göre)
+- **Sigortalıdır** — kayıp veya hasarda Site sorumludur
 - Hasar tespit edildiğinde 48 saat içinde fotoğraflı bildirim yapılmalıdır
 
 ---
@@ -133,13 +133,13 @@ c) Açık artırma ile alınmış ürünler (**Müzayede satışlarında cayma h
 Cayma hakkını kullanmak isteyen Alıcı:
 
 1. destek@miyaris.com adresine **yazılı bildirim** gönderir
-2. Ürünü **orijinal kutu, evrak ve sertifikası ile birlikte**, **kullanılmamış / hasarsız** halde 10 iş günü içinde Platform'a iletir
-3. Platform ürünü teslim alır ve Partner Mağaza tarafından **tekrar inceleme** yapar
+2. Ürünü **orijinal kutu, evrak ve sertifikası ile birlikte**, **kullanılmamış / hasarsız** halde 10 iş günü içinde Site'ye iletir
+3. Site ürünü teslim alır ve Ortak Mağaza tarafından **tekrar inceleme** yapar
 4. Uygun bulunursa **ödeme tutarı 14 gün içerisinde iade edilir**
 
 ### 5.4 İade kargosu
 
-- Cayma sebebi ürünün ayıplı olması ise kargo masrafı **Platform'a** aittir
+- Cayma sebebi ürünün ayıplı olması ise kargo masrafı **Site'ye** aittir
 - Cayma sebebi alıcıdan kaynaklanıyorsa kargo masrafı **alıcıya** aittir
 
 ---
@@ -151,8 +151,8 @@ Cayma hakkını kullanmak isteyen Alıcı:
 Alıcı, teslimi takip eden 30 gün içinde ürünün ayıplı (sahte, ciddi kusurlu) olduğunu tespit ederse:
 
 - destek@miyaris.com adresine ayıp ihbarı gönderir
-- Ürün Platform'a iade edilir
-- Partner Mağaza tekrar inceleme yapar
+- Ürün Site'ye iade edilir
+- Ortak Mağaza tekrar inceleme yapar
 - Ayıp tespit edilirse **tam iade** + **gönderim masrafı tazmini** yapılır
 
 ### 6.2 Ayıbın gizlenmesi durumunda Satıcı'nın sorumluluğu
@@ -167,7 +167,7 @@ Satıcı, ürünün gerçek durumunu sakladığı tespit edildiğinde:
 
 ## 7. Mücbir Sebepler
 
-Aşağıdaki durumlarda Platform'un sorumluluğu doğmaz:
+Aşağıdaki durumlarda Site'nin sorumluluğu doğmaz:
 
 - Deprem, sel, yangın, salgın hastalık
 - Savaş, terör, iç karışıklık

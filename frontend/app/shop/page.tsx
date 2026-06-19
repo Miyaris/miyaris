@@ -37,7 +37,7 @@ export default async function ShopPage({
         <h1 className="font-display text-5xl mt-4">Miyaris Mağaza</h1>
         <p className="text-charcoal-500 mt-4 max-w-2xl leading-relaxed">
           Sabit fiyatla, müzayede beklemeden alabileceğiniz seçili
-          koleksiyon. Tüm saatler partner mağaza ekspertizinden geçer ve
+          koleksiyon. Tüm saatler anlaşmalı mağaza ekspertizinden geçer ve
           Güvenli Kasa ile teslim edilir.
         </p>
       </header>

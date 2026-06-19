@@ -3,7 +3,7 @@ import type { MetadataRoute } from "next";
 /**
  * /robots.txt — Next.js 13+ konvansiyonu.
  *
- * Tüm public sayfaları indexlenebilir bırakırız. Admin ve account altı
+ * Tüm herkese açık sayfaları indexlenebilir bırakırız. Admin ve account altı
  * kullanıcıya özel; index dışı tutarız. Sitemap referansı Google'a hangi
  * URL'leri ne öncelikle tarayacağını anlatır.
  */

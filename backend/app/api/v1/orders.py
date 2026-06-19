@@ -118,7 +118,7 @@ async def fund_escrow(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Buyer ödemeyi tamamladı — escrow FUNDED'a geçer."""
+    """Alıcı ödemeyi tamamladı — Güvenli Kasa FONLANDI durumuna geçer."""
     await escrow_service.fund(db, escrow_id, user, payload)
     escrow, buyer, seller = await escrow_service.get_for_party(db, escrow_id, user)
     return _detail(escrow, buyer, seller)

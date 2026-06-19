@@ -346,7 +346,7 @@ async def list_admin_auctions(
             .order_by(Auction.ends_at.desc())
         )
     else:
-        raise ValueError(f"Geçersiz tab değeri: {tab}")
+        raise ValueError(f"Geçersiz sekme değeri: {tab}")
 
     stmt = stmt.limit(limit).offset(offset)
     result = await db.execute(stmt)

@@ -11,7 +11,7 @@ export default function SellWatchPage() {
         <h1 className="font-display text-4xl mt-4">Saatinizi Satın</h1>
         <p className="text-charcoal-500 mt-3 leading-relaxed">
           İki yöntemden birini seçin: doğrudan sabit fiyatla satış veya haftalık
-          açık artırma. Her ikisinde de partner mağaza ekspertizi zorunludur —
+          açık artırma. Her ikisinde de anlaşmalı mağaza ekspertizi zorunludur —
           akış ilan tipine göre değişir.
         </p>
       </div>

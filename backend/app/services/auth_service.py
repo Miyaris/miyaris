@@ -302,7 +302,7 @@ async def refresh_access_token(
         # login sayfasına yönlendirir.
         raise AuthError(str(e)) from e
     except InvalidRefreshTokenError as e:
-        raise AuthError("Geçersiz veya süresi dolmuş refresh token") from e
+        raise AuthError("Geçersiz veya süresi dolmuş yenileme belirteci") from e
 
     # Kullanıcı hâlâ aktif mi? rotation sonrası kontrol ediyoruz; eğer
     # kullanıcı pasifleştirildiyse refresh'i revoke et + reject.

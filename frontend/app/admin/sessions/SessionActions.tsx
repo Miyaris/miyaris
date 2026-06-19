@@ -5,7 +5,7 @@ import { useState } from "react";
 
 /**
  * Bir oturum satırı için admin aksiyonları:
- *   - "Kaldır" / "Geri Getir" — public sayfadan gizle/aç (her statüde geçerli)
+ *   - "Kaldır" / "Geri Getir" — herkese açık sayfadan gizle/aç (her statüde geçerli)
  *   - "İptal" — sadece PLANNING + LIVE; oturumu kapatır, mevcut lot da biter
  *
  * Confirm flow inline; modal yok.
@@ -53,7 +53,7 @@ export function SessionActions({
         message={
           isHidden
             ? "Oturum yayına geri getirilsin mi?"
-            : "Oturum public sayfadan kaldırılsın mı?"
+            : "Oturum herkese açık sayfadan kaldırılsın mı?"
         }
         confirmLabel={isHidden ? "Geri Getir" : "Kaldır"}
         accent={isHidden ? "olive" : "burgundy"}

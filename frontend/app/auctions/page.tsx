@@ -95,7 +95,7 @@ export default async function AuctionsPage({
         <span className="eyebrow">Haftalık Müzayede</span>
         <h1 className="font-display text-5xl mt-4">Müzayedeler</h1>
         <p className="text-charcoal-500 mt-4 max-w-2xl leading-relaxed">
-          Partner mağaza ekspertizinden geçmiş saatlerin canlı açık
+          Anlaşmalı mağaza ekspertizinden geçmiş saatlerin canlı açık
           artırmaları. Pazartesi başlar, Pazar akşamı kapanır.
         </p>
       </header>

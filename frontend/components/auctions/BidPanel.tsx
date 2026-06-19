@@ -267,15 +267,15 @@ function DepositModal({
       >
         <p className="eyebrow text-brass-dark mb-4">Müzayedeye Katılım</p>
         <h2 className="font-display text-3xl text-charcoal mb-6 leading-tight">
-          {amountStr} Kapora Provizyonu
+          {amountStr} Kapora Bloke Tutarı
         </h2>
 
         <div className="space-y-4 text-sm leading-relaxed text-charcoal-700 mb-8">
           <p>
             Bu müzayedede teklif verebilmek için kartınızdan{" "}
             <strong className="text-charcoal">{amountStr}</strong> tutarında
-            <strong className="text-charcoal"> kapora provizyonu (bloke)</strong>{" "}
-            alınacaktır.
+            <strong className="text-charcoal"> kapora bloke</strong>{" "}
+            uygulanacaktır.
           </p>
           <ul className="space-y-2 pl-5 list-disc marker:text-brass-dark/60">
             <li>İhaleyi kazanamazsanız bu bloke anında kaldırılır.</li>
@@ -288,11 +288,11 @@ function DepositModal({
           </ul>
           <div className="border-l-2 border-brass/40 bg-brass/5 px-4 py-3 mt-4">
             <p className="text-xs text-charcoal-500">
-              <strong className="text-brass-dark">MVP notu:</strong> Şu an
-              gerçek POS entegrasyonu (iyzico/PayTR) yerine{" "}
-              <strong>mock akış</strong> kullanılıyor. Onayladığınızda kart
-              talep edilmeden kapora kayıt altına alınır. Production'da 3D
-              Secure ile gerçek provizyon alınacak.
+              <strong className="text-brass-dark">Geçici not:</strong> Şu an
+              gerçek kart geçidi bağlantısı (iyzico/PayTR) yerine{" "}
+              <strong>deneme akışı</strong> kullanılıyor. Onayladığınızda kart
+              talep edilmeden kapora kayıt altına alınır. Canlı yayında kart
+              doğrulaması ile gerçek bloke uygulanacaktır.
             </p>
           </div>
         </div>

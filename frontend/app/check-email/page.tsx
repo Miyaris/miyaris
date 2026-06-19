@@ -58,7 +58,7 @@ export default function CheckEmailPage({
             Maile birkaç dakika içinde ulaşmazsa
           </p>
           <ul className="text-sm text-charcoal-700 leading-relaxed space-y-1.5 list-disc list-inside marker:text-brass-dark/60">
-            <li>Spam / Gereksiz klasörünü kontrol et</li>
+            <li>İstenmeyen / Gereksiz klasörünü kontrol et</li>
             <li>Doğrulama linki 24 saat geçerli</li>
             <li>
               Yeni link için{" "}

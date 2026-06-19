@@ -93,7 +93,7 @@ export default async function WatchDetailPage({
                 listedPrice={watch.asking_price ?? "0"}
               />
               <p className="text-xs text-charcoal-300 leading-relaxed">
-                Ödemeniz Miyaris Güvenli Kasa'da tutulur. Saat partner mağaza
+                Ödemeniz Miyaris Güvenli Kasa'da tutulur. Saat anlaşmalı mağaza
                 ekspertizinden geçtikten sonra adresinize gönderilir.
               </p>
             </div>

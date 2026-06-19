@@ -17,7 +17,7 @@ const OPTIONS: Option[] = [
   },
   {
     value: "store_pickup",
-    title: "Partner Mağazadan Teslim Al",
+    title: "Anlaşmalı Mağazadan Teslim Al",
     description:
       "Saati fiziksel olarak inceleyip Miyaris anlaşmalı saat butiğinden teslim alın. Mağaza adresi siparişiniz oluştuktan sonra paylaşılır.",
   },

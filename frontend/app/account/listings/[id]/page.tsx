@@ -65,7 +65,7 @@ export default async function ListingDetailPage({
         </div>
       )}
 
-      {/* Partner mağaza teslimat banner'ı — ekspertiz bekleyen tüm akışlar
+      {/* Anlaşmalı mağaza teslimat banner'ı — ekspertiz bekleyen tüm akışlar
           için: legacy pending_review, müzayede öncesi pending_pre_expertise,
           direkt satış sonrası awaiting_expertise. */}
       {watch.delivery_code &&
@@ -90,13 +90,13 @@ export default async function ListingDetailPage({
                   <strong className="text-charcoal">
                     {watch.delivery_code}
                   </strong>{" "}
-                  kodu ile yetkili Miyaris partner mağazasına teslim ediniz.{" "}
+                  kodu ile yetkili Miyaris anlaşmalı mağazasına teslim ediniz.{" "}
                   {watch.status === "awaiting_expertise"
                     ? "Alıcıya kargolanmadan önce uzman onayı alınacak; onaylanan saat doğrudan alıcıya yollanır ve ödemeniz serbest bırakılır."
                     : "Ekspertiz onayı tamamlandıktan sonra ilanınız haftalık müzayede planına otomatik olarak alınır."}
                 </p>
                 <p className="text-xs text-charcoal-300 mt-3 leading-relaxed">
-                  Partner mağaza listesi için{" "}
+                  Anlaşmalı mağaza listesi için{" "}
                   <a
                     href="/how-it-works"
                     className="border-b border-current hover:text-brass"
@@ -195,7 +195,7 @@ export default async function ListingDetailPage({
           <h3 className="font-display text-2xl mb-4">Mağazada Yayında</h3>
           <p className="text-charcoal-500 mb-8 max-w-xl mx-auto leading-relaxed">
             Saatiniz Miyaris Mağaza vitrininde sabit fiyatla satılıyor. Alıcı
-            satın aldığında size partner mağaza teslimat kodu gösterilecek.
+            satın aldığında size anlaşmalı mağaza teslimat kodu gösterilecek.
           </p>
           <Link
             href={`/watches/${watch.slug}`}

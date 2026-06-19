@@ -37,10 +37,10 @@ Miyaris, hizmetlerinin sunumu için aşağıdaki kişisel verileri işlemektedir
 
 - Hesap kayıt tarihi
 - Üyelik geçmişi
-- Listelenen saat bilgileri (marka, model, referans, yıl, durum, fotoğraf)
+- Listelenen saat bilgileri (marka, tip, referans, yıl, durum, fotoğraf)
 - Verilen teklifler (tutar, tarih, müzayede)
 - Satın alma geçmişi
-- Ödeme yöntemi (kredi kartı / banka havalesi — kart numarası saklanmaz, ödeme sağlayıcı PayU/iyzico tarafında token)
+- Ödeme yöntemi (kredi kartı / banka havalesi — kart numarası saklanmaz, ödeme sağlayıcı PayU/iyzico tarafında belirteç)
 - Kargo / teslimat adresi (işlem sırasında alınır)
 
 ### Teknik Veriler
@@ -84,8 +84,8 @@ Kişisel verileriniz aşağıdaki amaçlarla işlenmektedir:
    - Yargı veya idari taleplere yanıt
 
 4. **Meşru menfaat:**
-   - Platform güvenliği (rate limit, fraud tespit)
-   - Audit trail (immutable log)
+   - Site güvenliği (oran limit, sahtekârlık tespit)
+   - Denetim iz (değişmez kayıt)
    - Site performans analizi
    - Hizmet kalitesi ölçümü
 
@@ -103,8 +103,8 @@ Kişisel verileriniz KVKK md. 5/2 ve 6/2 uyarınca aşağıdaki hukuki sebeplere
 - **a) Açık rıza:** Pazarlama e-postaları, profilleme
 - **b) Sözleşmenin kurulması veya ifası:** Üyelik sözleşmesi, satış sözleşmesi
 - **c) Veri sorumlusunun hukuki yükümlülüklerini yerine getirmesi:** Vergi, MASAK, KVKK, Ticaret Bakanlığı (ETBİS)
-- **d) Bir hakkın tesisi, kullanılması veya korunması:** Yasal süreçler, audit
-- **e) Veri sahibinin temel hak ve özgürlüklerine zarar vermemek kaydıyla meşru menfaat:** Güvenlik, fraud tespiti
+- **d) Bir hakkın tesisi, kullanılması veya korunması:** Yasal süreçler, denetim
+- **e) Veri sahibinin temel hak ve özgürlüklerine zarar vermemek kaydıyla meşru menfaat:** Güvenlik, sahtekârlık tespiti
 
 ---
 
@@ -126,7 +126,7 @@ T.C. Kimlik No, **Aydınlatma Metni'nin yanı sıra ayrı Açık Rıza Metni** i
 ### Saklama
 
 - AES-256 ile şifreli olarak veritabanında saklanır
-- Yetkisiz erişime karşı IAM ve audit log uygulanır
+- Yetkisiz erişime karşı IAM ve denetim kayıt uygulanır
 - Hizmet sona erdikten sonra **10 yıl** boyunca vergi/ticaret kanunları gereği saklanır
 
 [AVUKAT NOTU: Saklama süresi 10 yıl Türk Ticaret Kanunu md. 82 uyarınca; doğrulanabilir]
@@ -140,7 +140,7 @@ Kişisel verileriniz, yalnızca aşağıdaki taraflarla paylaşılır:
 ### Yurt İçi
 
 - **NVİ:** Kimlik doğrulama amacıyla T.C. Kimlik No + Ad/Soyad/Doğum Yılı paylaşılır
-- **Partner Mağaza (Ekspertiz):** Saat ekspertizi için Saat bilgileri + satıcı iletişim verileri
+- **Ortak Mağaza (Ekspertiz):** Saat ekspertizi için Saat bilgileri + satıcı iletişim verileri
 - **Kargo şirketleri (Aras, Yurtiçi vb.):** Teslimat için ad, soyad, adres, telefon
 - **Ödeme sağlayıcı (iyzico / PayTR):** Ödeme işlemi için ad, soyad, e-posta, tutar
 - **Mali müşavir / vergi dairesi:** Yasal zorunluluk
@@ -148,10 +148,10 @@ Kişisel verileriniz, yalnızca aşağıdaki taraflarla paylaşılır:
 
 ### Yurt Dışı
 
-[AVUKAT NOTU: Render Frankfurt + Vercel global edge → veri yurt dışında işleniyor. KVKK md. 9 ile açık rıza şart, taahhütname/BCR sözleşme gerekli]
+[AVUKAT NOTU: Render Frankfurt + Vercel küresel kenar → veri yurt dışında işleniyor. KVKK md. 9 ile açık rıza şart, taahhütname/BCR sözleşme gerekli]
 
-- **Render Inc. (ABD/Frankfurt):** Backend hosting; PostgreSQL veritabanı Frankfurt'ta
-- **Vercel Inc. (ABD):** Frontend hosting + CDN
+- **Render Inc. (ABD/Frankfurt):** Backend barındırma; PostgreSQL veritabanı Frankfurt'ta
+- **Vercel Inc. (ABD):** Frontend barındırma + CDN
 - **Resend (ABD):** E-posta gönderim altyapısı
 - **Anthropic (ABD):** AI değerleme ajanları (uygulanan yerde)
 
@@ -166,10 +166,10 @@ Bu taraflarla **standart sözleşme klozları** (SCC) veya KVKK Kurulu izinli **
 | Hesap bilgileri (aktif üyelik) | Üyelik süresince | Hizmet sözleşmesi |
 | T.C. Kimlik No | 10 yıl (kayıt iptalinden sonra) | TTK md. 82, vergi mevzuatı |
 | Mali kayıtlar (fatura, sözleşme) | 10 yıl | TTK md. 82 |
-| Müzayede / teklif geçmişi | 10 yıl | Audit trail, hukuki uyuşmazlık |
+| Müzayede / teklif geçmişi | 10 yıl | Denetim iz, hukuki uyuşmazlık |
 | Çerez verileri | 12 ay | Standart pratik |
 | Pazarlama e-posta verileri | Onay geri alınana kadar | KVKK md. 11/d |
-| Log kayıtları (IP, User-Agent) | 6 ay | 5651 sayılı Kanun (asgari) |
+| Kayıt kayıtları (IP, User-Agent) | 6 ay | 5651 sayılı Kanun (asgari) |
 
 ---
 
@@ -207,11 +207,11 @@ Başvurularınız 30 gün içerisinde ücretsiz olarak yanıtlanır.
 
 - TLS 1.2+ ile şifreli iletişim (HTTPS)
 - AES-256 ile veritabanı şifrelemesi
-- RS256 imzalı JWT auth
-- IP bazlı rate limit
+- RS256 imzalı JWT kimlik denetimi
+- IP bazlı oran limit
 - 2FA opsiyonu (gelecek faz)
 - Düzenli güvenlik denetimi (penetrasyon testi)
-- Audit log (immutable)
+- Denetim kayıt (değişmez)
 
 ### İdari önlemler
 

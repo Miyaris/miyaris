@@ -9,24 +9,24 @@
 
 İşbu Üyelik Sözleşmesi ("Sözleşme"), bir tarafta;
 
-**[ŞIRKET UNVANI]** ("Miyaris" veya "Platform"), [ADRES] adresinde mukim, [VERGİ NO] vergi numaralı [şahıs şirketi / limited şirket],
+**[ŞIRKET UNVANI]** ("Miyaris" veya "Site"), [ADRES] adresinde mukim, [VERGİ NO] vergi numaralı [şahıs şirketi / limited şirket],
 
 ile diğer tarafta;
 
-Platform'a üyelik başvurusunda bulunan **gerçek veya tüzel kişi** ("Üye") arasında akdedilmiştir.
+Site'ye üyelik başvurusunda bulunan **gerçek veya tüzel kişi** ("Üye") arasında akdedilmiştir.
 
 ---
 
 ## 2. Tanımlar
 
-- **Platform:** miyaris.com web sitesi ve bağlı mobil uygulamalar.
-- **Üye:** Platform'a kayıt olmuş, kullanıcı hesabı bulunan gerçek/tüzel kişi.
-- **Saat:** Platform üzerinden alınıp satılan lüks kol saati.
+- **Site:** miyaris.com adresindeki site ve bağlı mobil uygulamalar.
+- **Üye:** Site'ye kayıt olmuş, kullanıcı hesabı bulunan gerçek/tüzel kişi.
+- **Saat:** Site üzerinden alınıp satılan lüks kol saati.
 - **Açık Artırma:** Belirli süre içinde teklif verme yöntemiyle yapılan satış.
 - **Direkt Satış:** Sabit fiyatlı listeleme.
-- **Güvenli Kasa:** Ödeme tutarının fiziksel doğrulama tamamlanana dek Platform tarafından emanet edildiği sistem.
-- **Partner Mağaza:** Platform'un anlaşmalı olduğu, fiziksel saat ekspertizini yapan bağımsız üçüncü taraf.
-- **Komisyon (Aracılık Ücreti):** Platform'un satıştan aldığı yüzdelik pay.
+- **Güvenli Kasa:** Ödeme tutarının fiziksel doğrulama tamamlanana dek Site tarafından emanet edildiği sistem.
+- **Ortak Mağaza:** Site'nin anlaşmalı olduğu, fiziksel saat ekspertizini yapan bağımsız üçüncü taraf.
+- **Komisyon (Aracılık Ücreti):** Site'nin satıştan aldığı yüzdelik pay.
 
 ---
 
@@ -41,7 +41,7 @@ Platform'a üyelik başvurusunda bulunan **gerçek veya tüzel kişi** ("Üye") 
 ### 3.2 Üyelik kabul edilmeyecek kişiler
 
 - 18 yaşından küçükler
-- Daha önce Platform tarafından üyeliği sonlandırılmış kişiler
+- Daha önce Site tarafından üyeliği sonlandırılmış kişiler
 - Türk hukukuna göre sınırlandırılmış kişiler
 - Yaptırım listelerinde yer alan kişi/kuruluşlar (MASAK, OFAC, AB)
 
@@ -59,13 +59,13 @@ Platform'a üyelik başvurusunda bulunan **gerçek veya tüzel kişi** ("Üye") 
 
 Üye, kayıt sırasında verdiği tüm bilgilerin (ad, soyad, T.C. kimlik no, doğum yılı, telefon, e-posta, varsa MERSİS) **doğru, güncel ve eksiksiz** olduğunu beyan eder.
 
-Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Platform:
+Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Site:
 
 - Üyeliği tek taraflı olarak askıya alabilir veya sonlandırabilir
 - Üyenin işleme almış olduğu satışları durdurabilir
 - Hukuki yollara başvurabilir
 
-Üye, bilgilerinde değişiklik olduğunda Platform'u güncelleme yükümlülüğündedir.
+Üye, bilgilerinde değişiklik olduğunda Site'yi güncelleme yükümlülüğündedir.
 
 ---
 
@@ -74,12 +74,12 @@ Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Platform:
 ### 5.1 Üyenin yükümlülükleri
 
 - Şifresini güvenli tutmak, üçüncü kişilerle paylaşmamak
-- Yetkisiz erişim şüphesi olduğunda derhal Platform'u bilgilendirmek
+- Yetkisiz erişim şüphesi olduğunda derhal Site'yi bilgilendirmek
 - Hesap üzerinden yapılan tüm işlemlerin sorumluluğunu üstlenmek
 
-### 5.2 Platform'un yükümlülükleri
+### 5.2 Site'nin yükümlülükleri
 
-- Endüstri standardına uygun güvenlik önlemleri (TLS 1.2+, JWT, rate limit)
+- Endüstri standardına uygun güvenlik önlemleri (TLS 1.2+, JWT, oran limit)
 - Şifre sıfırlama altyapısı
 - Veri ihlali durumunda KVKK kapsamında bildirim
 
@@ -87,18 +87,18 @@ Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Platform:
 
 ## 6. Üyenin Yapamayacakları
 
-Üye, Platform üzerinden aşağıdaki eylemleri **gerçekleştirmeyeceğini** kabul eder:
+Üye, Site üzerinden aşağıdaki eylemleri **gerçekleştirmeyeceğini** kabul eder:
 
 1. **Sahte saat satışı:** Bilerek replika, kopya veya sahte saat listelemek
-2. **Kendi listelediği ürüne teklif vermek** (shill bidding)
+2. **Kendi listelediği ürüne teklif vermek** (sahte teklif teklif verme)
 3. **Birden fazla hesap açıp aynı işlemde taraf olmak**
-4. **Platform'un müzayede mekanizmasını manipüle etmek** (otomatik bot, sahte teklif)
+4. **Site'nin müzayede mekanizmasını manipüle etmek** (otomatik robot, sahte teklif)
 5. **Üçüncü kişi adına yetkisiz işlem yapmak**
-6. **Platform veya diğer üyeleri kötü niyetli yorum / aşağılayıcı içerikle hedef almak**
+6. **Site veya diğer üyeleri kötü niyetli yorum / aşağılayıcı içerikle hedef almak**
 7. **Yasadışı kaynaklı saat satışı** (çalıntı eşya, kara para aklama)
 8. **MASAK kapsamında bildirilmesi gereken işlemleri gizlemek**
 
-İhlal durumunda Platform:
+İhlal durumunda Site:
 
 - Üyeliği derhal sonlandırabilir
 - İşlemleri iptal edebilir, paraları iade edebilir
@@ -107,7 +107,7 @@ Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Platform:
 
 ---
 
-## 7. Platform'un Hizmetleri
+## 7. Site'nin Hizmetleri
 
 ### 7.1 Direkt Satış
 
@@ -119,21 +119,21 @@ Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Platform:
 
 - Satıcı Üye, saatini açık artırmaya çıkarabilir
 - Başlangıç fiyatı, rezerv fiyatı, "Hemen Al" fiyatı belirleyebilir
-- Anti-sniping: son 5 dakikada gelen teklif bitiş süresini 5 dakika uzatır
+- Son Dakika Koruması: son 5 dakikada gelen teklif bitiş süresini 5 dakika uzatır
 - En yüksek teklif kazanır; satış otomatik gerçekleşir
 
 ### 7.3 Güvenli Kasa (Emanet)
 
-- Alıcı ödemeyi Platform'a yapar
-- Saat Partner Mağaza'ya kargo ile gönderilir
-- Partner Mağaza orijinallik kontrolü yapar
+- Alıcı ödemeyi Site'ye yapar
+- Saat Ortak Mağaza'ya kargo ile gönderilir
+- Ortak Mağaza orijinallik kontrolü yapar
 - Onaylanırsa saat alıcıya gönderilir, para satıcıya serbest bırakılır
 - Onaylanmazsa para alıcıya iade edilir, saat satıcıya geri gönderilir
 
 ### 7.4 Sertifikasyon
 
-- Müzayede saatleri **mutlaka** Partner Mağaza ekspertizinden geçer
-- Direkt satışta saat alıcıya gönderilmeden önce Partner Mağaza fiziksel kontrol yapar
+- Müzayede saatleri **mutlaka** Ortak Mağaza ekspertizinden geçer
+- Direkt satışta saat alıcıya gönderilmeden önce Ortak Mağaza fiziksel kontrol yapar
 - Ekspertiz sonucu **bağlayıcıdır**; alıcı sahte iddiası varsa bu raporu temel alarak iade talep edebilir
 
 ---
@@ -142,13 +142,13 @@ Yanlış, eksik veya yanıltıcı bilgi verilmesi durumunda Platform:
 
 ### 8.1 Satıcı komisyonu
 
-Platform, satıştan **tarife bazlı komisyon** alır:
+Site, satıştan **tarife bazlı komisyon** alır:
 
 - 0 — $5.000 arası satışlardan: **%10**
 - $5.000 — $25.000 arası: **%7**
 - $25.000 üzeri: **%5**
 
-[AVUKAT NOTU: Komisyon oranları örnek; nihai oran ticari karara bağlı. Platform tek taraflı değişiklik yapabilir kuralı eklensin mi?]
+[AVUKAT NOTU: Komisyon oranları örnek; nihai oran ticari karara bağlı. Site tek taraflı değişiklik yapabilir kuralı eklensin mi?]
 
 ### 8.2 Alıcıdan alınan ücret
 
@@ -171,31 +171,31 @@ Platform, satıştan **tarife bazlı komisyon** alır:
 
 Üye, herhangi bir zamanda hesap ayarlarından üyeliğini iptal edebilir. Aktif işlemler tamamlanmadan iptal mümkün değildir.
 
-### 9.2 Platform tarafından iptal
+### 9.2 Site tarafından iptal
 
-Platform, aşağıdaki durumlarda üyeliği tek taraflı sonlandırabilir:
+Site, aşağıdaki durumlarda üyeliği tek taraflı sonlandırabilir:
 
 - İşbu Sözleşme'nin ihlali
 - Yanlış / sahte bilgi tespiti
 - Mahkeme kararı
 - 6 ay boyunca hareketsizlik (önceden bildirimle)
 
-İptal durumunda Üye'nin geçmiş işlemleri, sözleşmesel ve yasal yükümlülükler nedeniyle audit amaçlı saklanmaya devam eder.
+İptal durumunda Üye'nin geçmiş işlemleri, sözleşmesel ve yasal yükümlülükler nedeniyle denetim amaçlı saklanmaya devam eder.
 
 ---
 
 ## 10. Fikri Mülkiyet
 
-- "Miyaris" ismi, logosu, tasarımı Platform'a aittir
-- Üye, Platform üzerinde yüklediği saat fotoğraflarının hakkına sahiptir
-- Üye, fotoğraflarını Platform'un satış akışında kullanması için **gayri münhasır, ücretsiz, dünya çapında** kullanım lisansı tanır
-- Üye, satılan saatin tüm fotoğraflarının arşivlenmesini ve Platform reklamlarında kullanılmasını kabul eder
+- "Miyaris" ismi, logosu, tasarımı Site'ye aittir
+- Üye, Site üzerinde yüklediği saat fotoğraflarının hakkına sahiptir
+- Üye, fotoğraflarını Site'nin satış akışında kullanması için **gayri münhasır, ücretsiz, dünya çapında** kullanım lisansı tanır
+- Üye, satılan saatin tüm fotoğraflarının arşivlenmesini ve Site reklamlarında kullanılmasını kabul eder
 
 ---
 
 ## 11. Sorumluluk Sınırlandırması
 
-### 11.1 Platform'un sorumluluk dışı kaldığı durumlar
+### 11.1 Site'nin sorumluluk dışı kaldığı durumlar
 
 - Üyeler arası anlaşmazlıklar (saat dışında ticari uyuşmazlık)
 - Üyenin internet bağlantı sorunları
@@ -203,7 +203,7 @@ Platform, aşağıdaki durumlarda üyeliği tek taraflı sonlandırabilir:
 - Mücbir sebepler (deprem, sel, salgın, savaş, internet altyapı kesintisi)
 - Üçüncü taraf hizmet sağlayıcı kesintileri (Vercel, Render, Resend, kargo)
 
-### 11.2 Platform'un sorumlu kaldığı alanlar
+### 11.2 Site'nin sorumlu kaldığı alanlar
 
 - Güvenli Kasa içindeki para emaneti
 - Ekspertiz sürecinin yürütülmesi
@@ -217,10 +217,10 @@ Platform, aşağıdaki durumlarda üyeliği tek taraflı sonlandırabilir:
 
 ## 12. Sözleşme Değişiklikleri
 
-Platform, Sözleşme'yi tek taraflı olarak değiştirme hakkını saklı tutar. Önemli değişiklikler:
+Site, Sözleşme'yi tek taraflı olarak değiştirme hakkını saklı tutar. Önemli değişiklikler:
 
 - Üyelere e-posta ile bildirilir
-- Site içi banner ile duyurulur
+- Site içi afiş ile duyurulur
 - 30 gün sonra yürürlüğe girer
 
 Üye, değişikliği kabul etmezse üyeliğini iptal edebilir.
@@ -251,7 +251,7 @@ Tarafların yazılı mutabakatı ile tahkim yoluna gidilebilir. Tahkim merkezi: 
 
 ---
 
-**Platform:** [ŞIRKET UNVANI]
+**Site:** [ŞIRKET UNVANI]
 **Tarih:** [TARIH]
 
-**Üye:** Elektronik kabul (timestamp ile sistemde saklanır)
+**Üye:** Elektronik kabul (zaman damgası ile sistemde saklanır)

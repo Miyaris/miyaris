@@ -12,7 +12,7 @@ Türkiye'de yerleşik gerçek/tüzel kişilerin sahip olduğu **lüks saatleri**
 
 1. **Direkt Satış (Miyaris Mağaza):** Satıcı sabit fiyatlı listeleme yapar; alıcı tıkla-al ile satın alır.
 2. **Açık Artırma (Müzayede):** Saat haftalık veya presenter tarafından yönetilen oturumlarda canlı teklif alır; en yüksek teklif kazanır.
-3. **Güvenli Kasa (Escrow):** Tüm ödemeler önce platforma gelir, saat fiziksel olarak partner mağaza tarafından doğrulandıktan sonra satıcıya serbest bırakılır.
+3. **Güvenli Kasa (Escrow):** Tüm ödemeler önce platforma gelir, saat fiziksel olarak anlaşmalı mağaza tarafından doğrulandıktan sonra satıcıya serbest bırakılır.
 
 ### Mevcut teknik altyapı
 

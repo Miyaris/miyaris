@@ -52,7 +52,7 @@ export default async function PlanAuctionPage({
           Saatiniz henüz hazır değil
         </h1>
         <p className="text-charcoal-500 mb-8 leading-relaxed">
-          Müzayedeye çıkabilmek için saatin partner mağaza ekspertizinden
+          Müzayedeye çıkabilmek için saatin anlaşmalı mağaza ekspertizinden
           geçmiş ve onaylanmış olması gerekiyor. Mevcut durum:{" "}
           <strong>{STATUS_LABELS[watch.status] ?? watch.status}</strong>
         </p>

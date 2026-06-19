@@ -108,11 +108,11 @@ export default async function ModerationDetailPage({
             kyc={watch.seller.kyc_verified}
           />
 
-          {/* Partner mağaza teslimat kodu — fiziksel saatle eşleştirme için */}
+          {/* Anlaşmalı mağaza teslimat kodu — fiziksel saatle eşleştirme için */}
           {watch.delivery_code && (
             <div className="border-2 border-brass bg-brass/5 p-5">
               <span className="eyebrow text-brass-dark mb-1 block">
-                Partner Mağaza Teslimat Kodu
+                Anlaşmalı Mağaza Teslimat Kodu
               </span>
               <div className="font-display text-2xl tabular-nums tracking-wider">
                 {watch.delivery_code}

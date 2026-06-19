@@ -34,7 +34,7 @@ class DeliveryMethod(str, enum.Enum):
     """Alıcının seçtiği teslimat yöntemi — escrow oluşurken set edilir."""
 
     SHIPPING = "shipping"            # Sigortalı kargo, alıcı adresine
-    STORE_PICKUP = "store_pickup"    # Partner mağazadan teslim
+    STORE_PICKUP = "store_pickup"    # Anlaşmalı mağazadan teslim
 
 
 class PaymentMethod(str, enum.Enum):

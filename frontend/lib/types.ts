@@ -348,7 +348,7 @@ export interface EscrowDetail {
 
 // Admin / Expert moderation tipleri
 
-export type AuthenticityVerdict =
+export type AuthenticityKarar =
   | "authentic"
   | "service_parts"
   | "not_authentic"

@@ -127,7 +127,7 @@ def _verify(token: str) -> dict[str, Any]:
             logger.debug("RS256 decode failed, trying HS256 legacy fallback")
     if settings.JWT_LEGACY_HS256_VERIFY and settings.JWT_SECRET_KEY:
         return jwt.decode(token, settings.JWT_SECRET_KEY, algorithms=["HS256"])
-    raise JWTError("Token doğrulanamadı: imza geçersiz veya algoritma desteklenmiyor")
+    raise JWTError("Belirteç doğrulanamadı: imza geçersiz veya algoritma desteklenmiyor")
 
 
 def assert_signing_ready() -> None:
@@ -146,7 +146,7 @@ def assert_signing_ready() -> None:
     if not _get_public_key():
         raise RuntimeError(
             "Production boot başarısız: JWT_PUBLIC_KEY_PEM env eksik. "
-            "Token doğrulanamaz."
+            "Belirteç doğrulanamaz."
         )
 
 
@@ -236,10 +236,10 @@ def decode_email_verify_token(token: str) -> uuid.UUID:
     """
     payload = _verify(token)
     if payload.get("type") != _EMAIL_VERIFY_TOKEN_TYPE:
-        raise ValueError("Token tipi e-posta doğrulama için uygun değil")
+        raise ValueError("Belirteç türü e-posta doğrulama için uygun değil")
     sub = payload.get("sub")
     if not sub:
-        raise ValueError("Token sub alanı boş")
+        raise ValueError("Belirteçte kullanıcı kimliği eksik")
     return uuid.UUID(sub)
 
 
@@ -278,8 +278,8 @@ def decode_password_reset_token(token: str) -> uuid.UUID:
     """
     payload = _verify(token)
     if payload.get("type") != _PASSWORD_RESET_TOKEN_TYPE:
-        raise ValueError("Token tipi şifre sıfırlama için uygun değil")
+        raise ValueError("Belirteç türü şifre sıfırlama için uygun değil")
     sub = payload.get("sub")
     if not sub:
-        raise ValueError("Token sub alanı boş")
+        raise ValueError("Belirteçte kullanıcı kimliği eksik")
     return uuid.UUID(sub)
