@@ -51,6 +51,7 @@ export function PresenterSessionLive({
     () => session.lots.filter((l) => l.status === "scheduled"),
     [session],
   );
+  const nextLot = upcomingLots[0] ?? null;
   const completedLots = useMemo(
     () => session.lots.filter((l) => l.status === "ended" || l.status === "completed"),
     [session],
@@ -117,6 +118,7 @@ export function PresenterSessionLive({
             <ActiveLotPanel
               key={currentLot.auction_id}
               lot={currentLot}
+              nextLot={nextLot}
               initialBids={
                 bidsInitial.length > 0 &&
                 bidsInitial[0]?.auction_id === currentLot.auction_id
@@ -177,6 +179,7 @@ export function PresenterSessionLive({
 
 function ActiveLotPanel({
   lot,
+  nextLot,
   initialBids,
   sessionId,
   actionPending,
@@ -186,6 +189,7 @@ function ActiveLotPanel({
   onActionSuccess,
 }: {
   lot: PresenterLotListItem;
+  nextLot: PresenterLotListItem | null;
   initialBids: BidPublic[];
   sessionId: string;
   actionPending: "advance" | "finalize" | "extend" | "end" | null;
@@ -225,6 +229,13 @@ function ActiveLotPanel({
   const highestBid = bids[0] ?? null;
   const [confirmingAdvance, setConfirmingAdvance] = useState(false);
   const [confirmingFinalize, setConfirmingFinalize] = useState(false);
+  // Çekiç vuruldu animasyonu: finalize başarılı olunca son fiyat ile birlikte
+  // 3 saniyelik tam ekran "SATILDI" gösterimi tetiklenir.
+  const [justSold, setJustSold] = useState<{
+    amount: string;
+    bidder: string | null;
+    watch: string;
+  } | null>(null);
 
   async function call(
     which: "advance" | "finalize" | "extend",
@@ -251,6 +262,15 @@ function ActiveLotPanel({
       }
       setConfirmingAdvance(false);
       setConfirmingFinalize(false);
+      // SATILDI animasyonu — finalize sonrası 3 saniye gösterilir.
+      if (which === "finalize") {
+        setJustSold({
+          amount: formatUsd(state.currentPrice),
+          bidder: highestBid?.bidder_alias ?? null,
+          watch: `${lot.brand} ${lot.model}`,
+        });
+        setTimeout(() => setJustSold(null), 3500);
+      }
       onActionSuccess();
     } catch {
       setActionError("Bağlantı hatası");
@@ -258,6 +278,42 @@ function ActiveLotPanel({
       setActionPending(null);
     }
   }
+
+  // Klavye kısa yolları — sunum esnasında ele almadan kullanım için.
+  // Boşluk: sattım onayı aç, sağ ok: sıradakine geç, +: süre uzat, Esc: vazgeç.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      // input/textarea içinde değilse tepki ver
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA")) return;
+      if (actionPending) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        if (highestBid && !confirmingAdvance) setConfirmingFinalize(true);
+      } else if (e.code === "ArrowRight") {
+        e.preventDefault();
+        if (!confirmingFinalize) setConfirmingAdvance(true);
+      } else if (e.key === "+" || e.key === "=") {
+        e.preventDefault();
+        call("extend", { seconds: 30 });
+      } else if (e.key === "Escape") {
+        e.preventDefault();
+        setConfirmingFinalize(false);
+        setConfirmingAdvance(false);
+      } else if (e.key === "Enter") {
+        if (confirmingFinalize) {
+          e.preventDefault();
+          call("finalize");
+        } else if (confirmingAdvance) {
+          e.preventDefault();
+          call("advance");
+        }
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [actionPending, confirmingAdvance, confirmingFinalize, highestBid]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 items-start max-w-6xl mx-auto w-full">
@@ -316,15 +372,27 @@ function ActiveLotPanel({
           </div>
         </div>
 
-        {/* Geri sayım */}
+        {/* Geri sayım — büyük, sahne odaklı */}
         {remainingSec !== null && remainingSec > 0 && (
-          <div className="mt-6">
-            <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-400 mb-1">
+          <div
+            className={`mt-6 border-2 px-6 py-4 ${
+              remainingSec <= 10
+                ? "border-burgundy bg-burgundy/5"
+                : remainingSec <= 30
+                  ? "border-brass-dark bg-brass/5"
+                  : "border-line bg-ivory-100"
+            }`}
+          >
+            <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-500 mb-1">
               Kalan Süre
             </p>
             <p
-              className={`font-display text-5xl tabular-nums leading-none ${
-                remainingSec <= 30 ? "text-burgundy animate-pulse" : "text-charcoal"
+              className={`font-display text-7xl md:text-8xl tabular-nums leading-none ${
+                remainingSec <= 10
+                  ? "text-burgundy animate-pulse"
+                  : remainingSec <= 30
+                    ? "text-brass-dark"
+                    : "text-charcoal"
               }`}
             >
               {formatTimer(remainingSec)}
@@ -388,6 +456,76 @@ function ActiveLotPanel({
           {actionError && (
             <p className="text-sm text-burgundy border-l-2 border-burgundy pl-3 py-1">
               {actionError}
+            </p>
+          )}
+
+          {/* Klavye kısa yolları — solgun hatırlatma */}
+          <div className="pt-3 mt-2 border-t border-line/60 flex flex-wrap gap-x-4 gap-y-1 text-[10px] tracking-widest uppercase text-charcoal-400">
+            <span><kbd className="font-mono text-[11px] text-charcoal-700">Boşluk</kbd> Sattım</span>
+            <span><kbd className="font-mono text-[11px] text-charcoal-700">→</kbd> Sıradaki</span>
+            <span><kbd className="font-mono text-[11px] text-charcoal-700">+</kbd> Süre Uzat</span>
+            <span><kbd className="font-mono text-[11px] text-charcoal-700">Esc</kbd> Vazgeç</span>
+          </div>
+        </div>
+      </div>
+
+      {/* Sonraki saat önizleme bandı — aktif lot panelin altında */}
+      {nextLot && (
+        <div className="col-span-1 lg:col-span-2 mt-4 border-t border-line pt-4 flex items-center gap-4">
+          <span className="text-[10px] tracking-[0.4em] uppercase text-charcoal-500 shrink-0">
+            Sıradaki
+          </span>
+          <div className="w-12 h-12 bg-ivory-200 shrink-0 overflow-hidden border border-line">
+            {nextLot.primary_image_url ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={nextLot.primary_image_url}
+                alt=""
+                className="w-full h-full object-cover"
+              />
+            ) : null}
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-lg text-charcoal truncate">
+              {nextLot.brand} {nextLot.model}
+            </p>
+            <p className="text-xs text-charcoal-500 tabular-nums">
+              Ref. {nextLot.reference_number} · Açılış {formatUsd(nextLot.starting_price)}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* SATILDI tam ekran animasyonu */}
+      {justSold && <SoldOverlay sold={justSold} />}
+    </div>
+  );
+}
+
+function SoldOverlay({
+  sold,
+}: {
+  sold: { amount: string; bidder: string | null; watch: string };
+}) {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-ivory/95 backdrop-blur-md animate-[fadeIn_0.2s_ease-out]">
+      <div className="text-center px-6 max-w-3xl">
+        <p className="text-xs tracking-[0.6em] uppercase text-brass-dark mb-4">
+          Çekiç Vuruldu
+        </p>
+        <h2 className="font-display text-[clamp(96px,18vw,220px)] leading-none text-burgundy">
+          SATILDI
+        </h2>
+        <div className="mt-8 border-t border-b border-brass/40 py-6 inline-block px-12">
+          <p className="text-xs tracking-[0.4em] uppercase text-charcoal-500 mb-2">
+            {sold.watch}
+          </p>
+          <p className="font-display text-7xl tabular-nums text-charcoal">
+            {sold.amount}
+          </p>
+          {sold.bidder && (
+            <p className="mt-3 text-sm text-charcoal-700 tabular-nums">
+              {sold.bidder}
             </p>
           )}
         </div>
