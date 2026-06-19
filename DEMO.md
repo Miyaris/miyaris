@@ -198,9 +198,9 @@ Frontend'de listing detay sayfasını yenile:
 3. `/admin/moderation` — kuyrukta Ön Ekspertiz Bekliyor + Ekspertiz Bekliyor
    tüm saatler tek listede
 4. "İncele →" → moderation detay sayfası (satıcı bilgisi, AI valuation,
-   fotoğraflar, açıklama, partner mağaza teslimat kodu)
+   fotoğraflar, açıklama, anlaşmalı mağaza teslimat kodu)
 5. **Sertifika Çıkar** kartı:
-   - Verdict: **Orijinal** seç
+   - Karar: **Orijinal** seç
    - Notlar: "Hareket numarası ile ref eşleşiyor. Servis izi yok. Kasa keskin."
    - PDF URL: test URL (örn. `https://example.com/cert.pdf`)
 6. "Sertifikayı Kaydet — Orijinal" → sayfa yenilenir

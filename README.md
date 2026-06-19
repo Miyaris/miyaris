@@ -43,7 +43,7 @@ Uçtan uca senaryo için `DEMO.md`'a bak.
 
 ## Üç Ayak
 
-- **Fiziksel Otorite:** Saatler partner mağaza ekspertizinden geçer; ilan tipine göre satıştan önce (AUCTION) veya satıştan sonra (DIRECT_SALE).
+- **Fiziksel Otorite:** Saatler anlaşmalı mağaza ekspertizinden geçer; ilan tipine göre satıştan önce (AUCTION) veya satıştan sonra (DIRECT_SALE).
 - **Finansal Güvenlik:** Ödeme, işlem tamamlanana kadar Güvenli Kasa'da bloke edilir (state machine).
 - **Otonom AI:** Valuation Agent + SEO Writer ajanları yeni ilanlar için canlı piyasa değerlemesi (çoklu kaynak + marka prestij fallback) ve Türkçe ilan metni üretir.
 

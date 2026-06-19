@@ -90,13 +90,13 @@ Aşağıdaki 6 faz, ürünü ciddi bir iş haline getirmek için sıralı + para
 **Hedef:** Satılan saatlerin "sertifikalı" olduğunu somut hale getir.
 
 ### 3.1 Partner mağaza ağı
-- **Hedef: 2-3 partner mağaza** (İstanbul Nişantaşı, Levent, Ataşehir; Ankara Çankaya; İzmir Alsancak)
+- **Hedef: 2-3 anlaşmalı mağaza** (İstanbul Nişantaşı, Levent, Ataşehir; Ankara Çankaya; İzmir Alsancak)
 - Aday firmalar: Saat & Saat, Atasay, Çağdaş Saat (büyük zincirler iş birliğine sıcak değil — bağımsız butikler dene)
 - Sözleşme: ekspertiz başına sabit ücret (örn. 500-1000 TL) veya komisyondan pay (%5-10)
 - Eksperin yetkinliği: WOSTEP, WatchCSA, AHCI sertifikalı tercih edilir
 
 ### 3.2 Fiziksel akış
-1. Satıcı saati partner mağazaya kargolar (delivery_code ile)
+1. Satıcı saati anlaşmalı mağazaya kargolar (delivery_code ile)
 2. Eksper saati alır, durum tespiti yapar, fotoğraf çeker
 3. Backend'de moderation queue'ya düşer (zaten var)
 4. Eksper karar verir: AUTHENTIC / SERVICE_PARTS / NOT_AUTHENTIC / INCONCLUSIVE
@@ -167,7 +167,7 @@ Aşağıdaki 6 faz, ürünü ciddi bir iş haline getirmek için sıralı + para
 - WhatsApp/Telegram beta group → günlük iletişim
 
 ### 5.2 Pilot ürünler
-- **5-10 gerçek saat** — kendi koleksiyonun + partner mağaza katkıları
+- **5-10 gerçek saat** — kendi koleksiyonun + anlaşmalı mağaza katkıları
 - 1 haftalık küçük müzayede + 2-3 direkt satış
 - Reserve fiyatı düşük tut (test amaçlı, satılırsa kâr, satılmazsa öğrenme)
 
@@ -254,7 +254,7 @@ Sermaye gerekmiyorsa: kendinden 30-50K TL ile başla, FAZ 5 sonunda gelirler gid
 - **Kargo zayiat**: sigortasız asla. Tek bir Patek kaybı 500K TL geri ödeme.
 
 ### Orta risk
-- **Düşük likidite**: ilk aylarda az müşteri = az saat = az müşteri (chicken-egg). Çözüm: kendin saat koy, partner mağazadan ödünç al.
+- **Düşük likidite**: ilk aylarda az müşteri = az saat = az müşteri (chicken-egg). Çözüm: kendin saat koy, anlaşmalı mağazadan ödünç al.
 - **NVİ rate limit / kapanma**: NVİ KPSPublic resmi servisi bazen yavaş. Fallback: manuel admin onay (zaten var).
 - **Render outage**: Vercel + Render ikilisi 99.9% uptime'da kalır ama kritik dönemde (canlı müzayede) downtime = direkt para kaybı. Status page kur, kullanıcıya haber ver.
 
