@@ -14,14 +14,14 @@ import type {
 /**
  * Canlı Sunucu Ekranı — sıralı oturum akışı.
  *
- * Lot listesi sağda dikey: aktif lot vurgulanır (brass border + animasyon).
- * Bittikçe işaretlenir, sıradakine geçilir.
+ * Tasarım: ivory zemin + kömür yazı + altın vurgu. Ana site estetiğiyle
+ * uyumlu klasik müzayede evi havası. Saat görseli aktif panelde belirgin.
  *
  * Aksiyonlar:
- *  - "Sıradaki Saat" → mevcut lot ENDED (escrow varsa), sıradaki LIVE
- *  - "SATTIM" → mevcut lot ENDED + escrow (sıradakine geçmez, manuel
- *    advance bekler)
- *  - "+30 Saniye" → mevcut lot'un extended_until'i
+ *  - "Sıradaki Saat" → mevcut lot ENDED (Güvenli Kasa varsa), sıradaki LIVE
+ *  - "SATTIM" → mevcut lot ENDED + Güvenli Kasa (sıradakine geçmez, manuel
+ *    bekler)
+ *  - "+30 Saniye" → mevcut lotun extended_until'i
  *  - "Oturumu Bitir" → tüm oturum manuel ENDED
  *
  * WS sadece mevcut LIVE lot'a bağlanır. Lot değişince hook re-init olur
@@ -47,28 +47,72 @@ export function PresenterSessionLive({
     [session],
   );
 
+  const upcomingLots = useMemo(
+    () => session.lots.filter((l) => l.status === "scheduled"),
+    [session],
+  );
+  const completedLots = useMemo(
+    () => session.lots.filter((l) => l.status === "ended" || l.status === "completed"),
+    [session],
+  );
+
+  async function refreshSession() {
+    try {
+      const fresh = await fetch(
+        `/api/presenter/sessions/${session.id}/refresh`,
+        { cache: "no-store" },
+      );
+      if (fresh.ok) {
+        const data = await fresh.json();
+        setSession(data);
+        setBidsInitial([]);
+      } else {
+        router.refresh();
+      }
+    } catch {
+      router.refresh();
+    }
+  }
+
   return (
-    <main className="min-h-screen bg-charcoal text-ivory flex flex-col">
-      <header className="border-b border-ivory/10 px-12 py-5 flex items-center justify-between flex-wrap gap-4">
-        <div className="flex items-baseline gap-6">
-          <Link
-            href={`/presenter/sessions/${session.id}`}
-            className="text-[10px] tracking-[0.3em] uppercase text-ivory/40 hover:text-ivory/70"
-          >
-            ← Detaya Dön
-          </Link>
-          <p className="text-[10px] tracking-[0.3em] uppercase text-brass">
-            {session.status === "live" ? "Canlı Oturum" : "Oturum"}
-          </p>
-          <h1 className="font-display text-2xl truncate max-w-md">
-            {session.name}
-          </h1>
+    <main className="min-h-screen bg-ivory text-charcoal flex flex-col">
+      {/* Üst başlık şeridi */}
+      <header className="border-b border-line bg-ivory/95 backdrop-blur-sm sticky top-0 z-30">
+        <div className="px-8 md:px-12 py-5 flex items-center justify-between flex-wrap gap-4">
+          <div className="flex items-baseline gap-6">
+            <Link
+              href={`/presenter/sessions/${session.id}`}
+              className="text-[10px] tracking-[0.3em] uppercase text-charcoal-500 hover:text-brass-dark"
+            >
+              ← Detaya Dön
+            </Link>
+            <div className="flex items-baseline gap-3">
+              {session.status === "live" && (
+                <span className="inline-flex items-center gap-2 text-[10px] tracking-[0.3em] uppercase text-burgundy">
+                  <span className="w-1.5 h-1.5 bg-burgundy rounded-full animate-pulse" />
+                  Canlı Yayında
+                </span>
+              )}
+              <h1 className="font-display text-2xl text-charcoal truncate max-w-md">
+                {session.name}
+              </h1>
+            </div>
+          </div>
+          <div className="flex items-center gap-5 text-xs tracking-[0.2em] uppercase text-charcoal-500">
+            <span>
+              {completedLots.length} <span className="text-charcoal-300">·</span> {upcomingLots.length} sırada
+            </span>
+            <span className="hidden md:inline-flex items-center gap-2 text-olive">
+              <span className="w-1.5 h-1.5 bg-olive rounded-full" />
+              Sunucu çevrimiçi
+            </span>
+          </div>
         </div>
       </header>
 
-      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_360px] gap-0">
+      <div className="flex-1 grid grid-cols-1 lg:grid-cols-[1fr_340px] gap-0">
         {/* SOL — Aktif lot canlı paneli */}
-        <section className="flex flex-col items-center justify-center px-12 py-12 relative">
+        <section className="flex flex-col items-stretch justify-center px-8 md:px-12 py-10 relative">
           {currentLot ? (
             <ActiveLotPanel
               key={currentLot.auction_id}
@@ -84,33 +128,13 @@ export function PresenterSessionLive({
               setActionPending={setActionPending}
               actionError={actionError}
               setActionError={setActionError}
-              onActionSuccess={async () => {
-                // Server'dan session detayını ve yeni bid listesini tekrar çek
-                try {
-                  const fresh = await fetch(
-                    `/api/presenter/sessions/${session.id}/refresh`,
-                    { cache: "no-store" },
-                  );
-                  if (fresh.ok) {
-                    const data = await fresh.json();
-                    setSession(data);
-                    // Yeni current lot için bidleri sıfırla; WS hızlıca dolduracak
-                    setBidsInitial([]);
-                  } else {
-                    router.refresh();
-                  }
-                } catch {
-                  router.refresh();
-                }
-              }}
+              onActionSuccess={refreshSession}
             />
           ) : (
             <NoLiveLotPanel
               sessionStatus={session.status}
               sessionId={session.id}
-              hasUpcoming={session.lots.some(
-                (l) => l.status === "scheduled",
-              )}
+              hasUpcoming={upcomingLots.length > 0}
               actionPending={actionPending}
               setActionPending={setActionPending}
               actionError={actionError}
@@ -120,12 +144,17 @@ export function PresenterSessionLive({
           )}
         </section>
 
-        {/* SAĞ — Lot listesi (oturum sırası) */}
-        <aside className="border-t lg:border-t-0 lg:border-l border-ivory/10 bg-black/30 px-6 py-8 flex flex-col">
-          <p className="text-[11px] tracking-[0.4em] uppercase text-ivory/40 mb-5">
-            Oturum Sırası ({session.lots.length})
-          </p>
-          <ol className="space-y-2 overflow-y-auto">
+        {/* SAĞ — Oturum sırası */}
+        <aside className="border-t lg:border-t-0 lg:border-l border-line bg-ivory-100 px-5 py-7 flex flex-col">
+          <div className="flex items-baseline justify-between mb-5">
+            <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-500">
+              Oturum Sırası
+            </p>
+            <p className="text-xs tabular-nums text-charcoal-400">
+              {session.lots.length}
+            </p>
+          </div>
+          <ol className="space-y-2 overflow-y-auto pr-1">
             {session.lots.map((lot, idx) => (
               <LotRow
                 key={lot.auction_id}
@@ -135,9 +164,9 @@ export function PresenterSessionLive({
               />
             ))}
           </ol>
-          <div className="mt-auto pt-6 border-t border-ivory/10">
-            <p className="text-[10px] tracking-[0.3em] uppercase text-ivory/30">
-              Oturum ID: {session.id.slice(0, 8)}
+          <div className="mt-auto pt-6 border-t border-line">
+            <p className="text-[10px] tracking-[0.3em] uppercase text-charcoal-300">
+              Oturum kimliği: {session.id.slice(0, 8)}
             </p>
           </div>
         </aside>
@@ -231,103 +260,139 @@ function ActiveLotPanel({
   }
 
   return (
-    <>
-      <p className="text-[11px] tracking-[0.4em] uppercase text-ivory/40 mb-3">
-        Şu Anki Saat — {lot.brand} {lot.model}
-      </p>
-      <p className="text-xs text-ivory/30 tabular-nums mb-6">
-        Ref. {lot.reference_number}
-      </p>
-
-      <div className="font-display text-[clamp(96px,14vw,180px)] leading-none tabular-nums text-brass">
-        {formatUsd(state.currentPrice)}
-      </div>
-
-      <div className="mt-8 flex items-center gap-4">
-        <span className="text-xl text-ivory/60 tracking-wide tabular-nums">
-          {highestBid?.bidder_alias ?? "—"}
-        </span>
-        {highestBid && (
-          <span className="inline-flex items-center gap-2 px-3 py-1 border border-olive/40 bg-olive/10 text-olive text-xs tracking-widest uppercase">
-            ✓ Onaylı
-          </span>
-        )}
-      </div>
-
-      {remainingSec !== null && remainingSec > 0 && (
-        <div className="mt-10 text-center">
-          <p className="text-[10px] tracking-[0.4em] uppercase text-ivory/40 mb-2">
-            Kalan Süre
-          </p>
-          <p
-            className={`font-display text-6xl tabular-nums ${
-              remainingSec <= 30 ? "text-burgundy" : "text-ivory"
-            }`}
-          >
-            {formatTimer(remainingSec)}
-          </p>
-        </div>
-      )}
-
-      <div className="mt-10 w-full max-w-2xl space-y-4">
-        <div className="flex items-center justify-center gap-4 flex-wrap">
-          <button
-            type="button"
-            onClick={() => call("extend", { seconds: 30 })}
-            disabled={actionPending !== null}
-            className="text-xs tracking-[0.3em] uppercase text-brass-dark hover:text-brass border-b border-brass/40 pb-0.5 disabled:opacity-30"
-          >
-            {actionPending === "extend" ? "..." : "+ 30 Saniye Ekle"}
-          </button>
-        </div>
-
-        {confirmingFinalize ? (
-          <ConfirmBar
-            message="Bu lot şu fiyatla kesinleştirilsin mi? (sıradakine geçmez)"
-            highlight={formatUsd(state.currentPrice)}
-            pending={actionPending === "finalize"}
-            onCancel={() => setConfirmingFinalize(false)}
-            onConfirm={() => call("finalize")}
-            accent="burgundy"
-            confirmLabel="SATTIM"
-          />
-        ) : confirmingAdvance ? (
-          <ConfirmBar
-            message="Mevcut lot bittirilip sıradakine geçilsin mi?"
-            highlight={formatUsd(state.currentPrice)}
-            pending={actionPending === "advance"}
-            onCancel={() => setConfirmingAdvance(false)}
-            onConfirm={() => call("advance")}
-            accent="olive"
-            confirmLabel="Sıradakine Geç"
+    <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-10 items-start max-w-6xl mx-auto w-full">
+      {/* Saat görseli */}
+      <div className="aspect-square bg-ivory-200 overflow-hidden border border-line shadow-sm relative">
+        {lot.primary_image_url ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={lot.primary_image_url}
+            alt={`${lot.brand} ${lot.model}`}
+            className="w-full h-full object-cover"
           />
         ) : (
-          <div className="flex gap-3 flex-wrap">
-            <button
-              type="button"
-              onClick={() => setConfirmingFinalize(true)}
-              disabled={!highestBid}
-              className="flex-1 bg-burgundy hover:bg-burgundy/90 disabled:opacity-30 text-ivory py-6 text-2xl tracking-[0.25em] uppercase font-display border-2 border-burgundy"
+          <div className="w-full h-full flex items-center justify-center text-charcoal-300 text-xs tracking-widest uppercase">
+            Görsel yok
+          </div>
+        )}
+        {/* Sol üst köşede altın aksanlı şerit */}
+        <div className="absolute top-3 left-3 inline-flex items-center gap-2 bg-brass-dark text-ivory px-3 py-1 text-[10px] tracking-[0.3em] uppercase">
+          Şimdi
+        </div>
+      </div>
+
+      {/* Sağ taraf — bilgi ve aksiyonlar */}
+      <div className="flex flex-col">
+        <p className="text-[10px] tracking-[0.4em] uppercase text-brass-dark mb-3">
+          Şimdiki Saat
+        </p>
+        <h2 className="font-display text-4xl md:text-5xl text-charcoal leading-tight">
+          {lot.brand}
+        </h2>
+        <p className="font-display text-2xl md:text-3xl text-charcoal-700 mt-1">
+          {lot.model}
+        </p>
+        <p className="text-xs tabular-nums text-charcoal-500 mt-3 tracking-wide">
+          Referans {lot.reference_number}
+        </p>
+
+        {/* Mevcut fiyat — büyük, klasik tipografi */}
+        <div className="mt-8 pb-5 border-b border-line">
+          <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-400 mb-2">
+            Şu Anki Teklif
+          </p>
+          <p className="font-display text-[clamp(64px,10vw,128px)] leading-none tabular-nums text-charcoal">
+            {formatUsd(state.currentPrice)}
+          </p>
+          <div className="mt-4 flex items-center gap-3 flex-wrap">
+            <span className="text-base text-charcoal-700 tabular-nums">
+              {highestBid?.bidder_alias ?? "Henüz teklif yok"}
+            </span>
+            {highestBid && (
+              <span className="inline-flex items-center gap-2 px-2.5 py-0.5 border border-olive/40 bg-olive/10 text-olive text-[10px] tracking-widest uppercase">
+                ✓ Onaylı
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Geri sayım */}
+        {remainingSec !== null && remainingSec > 0 && (
+          <div className="mt-6">
+            <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-400 mb-1">
+              Kalan Süre
+            </p>
+            <p
+              className={`font-display text-5xl tabular-nums leading-none ${
+                remainingSec <= 30 ? "text-burgundy animate-pulse" : "text-charcoal"
+              }`}
             >
-              SATTIM
-            </button>
-            <button
-              type="button"
-              onClick={() => setConfirmingAdvance(true)}
-              className="flex-1 bg-olive hover:bg-olive/90 text-ivory py-6 text-2xl tracking-[0.25em] uppercase font-display border-2 border-olive"
-            >
-              Sıradaki ↓
-            </button>
+              {formatTimer(remainingSec)}
+            </p>
           </div>
         )}
 
-        {actionError && (
-          <p className="text-sm text-burgundy border-l-2 border-burgundy pl-3">
-            {actionError}
-          </p>
-        )}
+        {/* Aksiyonlar */}
+        <div className="mt-8 space-y-4">
+          <div className="flex items-center gap-4 flex-wrap">
+            <button
+              type="button"
+              onClick={() => call("extend", { seconds: 30 })}
+              disabled={actionPending !== null}
+              className="text-xs tracking-[0.3em] uppercase text-brass-dark hover:text-brass border-b border-brass/40 pb-0.5 disabled:opacity-30"
+            >
+              {actionPending === "extend" ? "..." : "+ 30 Saniye Ekle"}
+            </button>
+          </div>
+
+          {confirmingFinalize ? (
+            <ConfirmBar
+              message="Bu lot şu fiyatla kesinleştirilsin mi? (sıradakine geçmez)"
+              highlight={formatUsd(state.currentPrice)}
+              pending={actionPending === "finalize"}
+              onCancel={() => setConfirmingFinalize(false)}
+              onConfirm={() => call("finalize")}
+              accent="burgundy"
+              confirmLabel="SATTIM"
+            />
+          ) : confirmingAdvance ? (
+            <ConfirmBar
+              message="Mevcut lot bittirilip sıradakine geçilsin mi?"
+              highlight={formatUsd(state.currentPrice)}
+              pending={actionPending === "advance"}
+              onCancel={() => setConfirmingAdvance(false)}
+              onConfirm={() => call("advance")}
+              accent="olive"
+              confirmLabel="Sıradakine Geç"
+            />
+          ) : (
+            <div className="flex gap-3 flex-wrap">
+              <button
+                type="button"
+                onClick={() => setConfirmingFinalize(true)}
+                disabled={!highestBid}
+                className="flex-1 bg-burgundy hover:bg-burgundy/90 disabled:opacity-30 text-ivory py-5 text-xl tracking-[0.25em] uppercase font-display border-2 border-burgundy"
+              >
+                SATTIM
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfirmingAdvance(true)}
+                className="flex-1 bg-olive hover:bg-olive/90 text-ivory py-5 text-xl tracking-[0.25em] uppercase font-display border-2 border-olive"
+              >
+                Sıradaki ↓
+              </button>
+            </div>
+          )}
+
+          {actionError && (
+            <p className="text-sm text-burgundy border-l-2 border-burgundy pl-3 py-1">
+              {actionError}
+            </p>
+          )}
+        </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -373,15 +438,17 @@ function NoLiveLotPanel({
 
   if (sessionStatus !== "live") {
     return (
-      <div className="text-center max-w-md">
-        <p className="eyebrow text-ivory/40 mb-4">Oturum aktif değil</p>
-        <p className="text-ivory/60 leading-relaxed">
-          Bu oturum {sessionStatus === "planning" ? "henüz canlıya alınmadı" : sessionStatus === "ended" ? "bitti" : "iptal edildi"}.
+      <div className="text-center max-w-md mx-auto">
+        <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-500 mb-4">
+          Oturum aktif değil
+        </p>
+        <p className="text-charcoal-700 leading-relaxed">
+          Bu oturum {sessionStatus === "planning" ? "henüz canlıya alınmadı" : sessionStatus === "ended" ? "tamamlandı" : "iptal edildi"}.
           Detay sayfasından durumu yönet.
         </p>
         <Link
           href={`/presenter/sessions/${sessionId}`}
-          className="mt-6 inline-block text-xs tracking-widest uppercase border border-ivory/40 px-6 py-3 hover:bg-ivory hover:text-charcoal"
+          className="mt-6 inline-block text-xs tracking-widest uppercase border border-charcoal text-charcoal px-6 py-3 hover:bg-charcoal hover:text-ivory transition-colors"
         >
           Detaya Dön
         </Link>
@@ -390,11 +457,13 @@ function NoLiveLotPanel({
   }
 
   return (
-    <div className="text-center max-w-md">
-      <p className="eyebrow text-ivory/40 mb-4">Mevcut lot yok</p>
-      <p className="text-ivory/60 leading-relaxed mb-8">
+    <div className="text-center max-w-md mx-auto">
+      <p className="text-[10px] tracking-[0.4em] uppercase text-charcoal-500 mb-4">
+        Mevcut lot yok
+      </p>
+      <p className="text-charcoal-700 leading-relaxed mb-8">
         {hasUpcoming
-          ? "Sıradaki saate geçmek için aşağıdaki butona bas."
+          ? "Sıradaki saate geçmek için aşağıdaki düğmeye bas."
           : "Tüm saatler tamamlandı. Oturumu bitirebilirsin."}
       </p>
       {hasUpcoming && (
@@ -435,13 +504,13 @@ function ConfirmBar({
   const accentText = accent === "burgundy" ? "text-burgundy" : "text-olive";
   const containerCls =
     accent === "burgundy"
-      ? "border-burgundy/40 bg-burgundy/5"
-      : "border-olive/40 bg-olive/5";
+      ? "border-burgundy/30 bg-burgundy/5"
+      : "border-olive/30 bg-olive/5";
   return (
     <div
-      className={`border ${containerCls} px-6 py-4 flex items-center justify-between gap-4 flex-wrap`}
+      className={`border ${containerCls} px-5 py-4 flex items-center justify-between gap-4 flex-wrap`}
     >
-      <p className="text-sm text-ivory/90 flex-1 min-w-[200px]">
+      <p className="text-sm text-charcoal flex-1 min-w-[200px]">
         {message} <strong className={accentText}>{highlight}</strong>
       </p>
       <div className="flex items-center gap-3 shrink-0">
@@ -449,7 +518,7 @@ function ConfirmBar({
           type="button"
           onClick={onCancel}
           disabled={pending}
-          className="text-xs tracking-[0.3em] uppercase text-ivory/60 hover:text-ivory"
+          className="text-xs tracking-[0.3em] uppercase text-charcoal-500 hover:text-charcoal"
         >
           Vazgeç
         </button>
@@ -478,18 +547,18 @@ function LotRow({
   const done = lot.status === "ended" || lot.status === "completed";
   return (
     <li
-      className={`flex items-center gap-3 px-3 py-2.5 border ${
+      className={`flex items-center gap-3 px-3 py-2.5 border transition-colors ${
         isActive
-          ? "border-brass/60 bg-brass/10 animate-pulse"
+          ? "border-brass/60 bg-brass/10 shadow-sm"
           : done
-            ? "border-ivory/10 opacity-50"
-            : "border-ivory/10"
+            ? "border-line bg-ivory-200/40 opacity-60"
+            : "border-line bg-ivory hover:bg-ivory-200/40"
       }`}
     >
-      <span className="font-display text-lg text-ivory/40 tabular-nums w-6 text-right shrink-0">
+      <span className="font-display text-lg text-charcoal-400 tabular-nums w-6 text-right shrink-0">
         {index}
       </span>
-      <div className="w-10 h-10 bg-ivory/10 shrink-0 overflow-hidden">
+      <div className="w-12 h-12 bg-ivory-200 shrink-0 overflow-hidden border border-line">
         {lot.primary_image_url ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
@@ -500,13 +569,18 @@ function LotRow({
         ) : null}
       </div>
       <div className="min-w-0 flex-1">
-        <p className="text-sm text-ivory truncate">
+        <p className="text-sm text-charcoal truncate font-medium">
           {lot.brand} {lot.model}
         </p>
-        <p className="text-[10px] tracking-widest uppercase text-ivory/30 tabular-nums">
+        <p className="text-[10px] tracking-widest uppercase text-charcoal-500 tabular-nums mt-0.5">
           {formatUsd(lot.current_price)} · {lot.bid_count} teklif
         </p>
       </div>
+      {isActive && (
+        <span className="text-[9px] tracking-[0.3em] uppercase text-brass-dark shrink-0">
+          Canlı
+        </span>
+      )}
     </li>
   );
 }
