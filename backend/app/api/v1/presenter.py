@@ -35,6 +35,7 @@ from app.schemas.presenter import (
     PresenterSessionCreate,
     PresenterSessionDetail,
     PresenterSessionListItem,
+    PresenterSessionUpdate,
     PublicSessionDetail,
     PublicSessionListItem,
 )
@@ -206,6 +207,27 @@ async def get_session(
     db: AsyncSession = Depends(get_db),
 ):
     """Oturum detayı — sahibi olmayan presenter 403, var olmayan 404."""
+    session = await presenter_service.get_my_session(db, session_id, user)
+    return _session_to_detail(session)
+
+
+@router.patch(
+    "/sessions/{session_id}",
+    response_model=PresenterSessionDetail,
+)
+async def update_session_endpoint(
+    session_id: uuid.UUID,
+    payload: PresenterSessionUpdate,
+    user: User = Depends(get_current_presenter),
+    db: AsyncSession = Depends(get_db),
+):
+    """Oturumun ad/saat/açıklama alanlarını güncelle.
+
+    Yalnızca PLANNING durumundaki oturum değiştirilebilir; LIVE oturum
+    saatini değiştirmek anti-sniping ve teklif kaydını bozar (409 döner).
+    """
+    await presenter_service.update_session(db, session_id, user, payload)
+    # Eager-load ile detay çek
     session = await presenter_service.get_my_session(db, session_id, user)
     return _session_to_detail(session)
 

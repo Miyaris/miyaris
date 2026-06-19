@@ -60,6 +60,36 @@ class PresenterSessionCreate(BaseModel):
         return self
 
 
+class PresenterSessionUpdate(BaseModel):
+    """Mevcut oturumun düzenlenebilir alanları.
+
+    Sadece PLANNING durumundaki oturumlar değiştirilebilir; LIVE oturumun
+    saatini değiştirmek anti-sniping ve teklif takibini bozar.
+    """
+
+    name: str | None = Field(default=None, min_length=3, max_length=160)
+    scheduled_at: datetime | None = None
+    description: str | None = Field(default=None, max_length=4000)
+
+    @field_validator("name")
+    @classmethod
+    def _strip_name(cls, v: str | None) -> str | None:
+        if v is None:
+            return None
+        v = v.strip()
+        if not v:
+            raise ValueError("Oturum adı boş olamaz")
+        return v
+
+    @model_validator(mode="after")
+    def _validate_tz(self):
+        if self.scheduled_at is not None and self.scheduled_at.tzinfo is None:
+            raise ValueError(
+                "scheduled_at için saat dilimi belirtilmeli (ISO 8601 + offset)"
+            )
+        return self
+
+
 class PresenterLotCreate(BaseModel):
     """Mevcut bir oturuma saat lot'u ekleme payload'u.
 

@@ -5,6 +5,7 @@ import { backendFetch } from "@/lib/api";
 import type { PresenterSessionDetail } from "@/lib/types";
 
 import { AddLotForm } from "./AddLotForm";
+import { EditSessionForm } from "./EditSessionForm";
 import { SessionLifecycleActions } from "./SessionLifecycleActions";
 
 export const dynamic = "force-dynamic";
@@ -115,12 +116,15 @@ export default async function PresenterSessionDetailPage({
           )}
 
           {/* Oturum yaşam döngüsü aksiyonları */}
-          <div className="mt-6">
+          <div className="mt-6 flex flex-wrap items-center gap-6">
             <SessionLifecycleActions
               sessionId={session.id}
               status={session.status}
               lotCount={session.lots.length}
             />
+            {session.status === "planning" && (
+              <EditSessionForm session={session} />
+            )}
           </div>
         </header>
 

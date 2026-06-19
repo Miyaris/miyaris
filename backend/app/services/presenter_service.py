@@ -139,6 +139,45 @@ async def get_my_session(
 
 
 # ============================================================================
+# Oturum bilgilerini düzenleme (sadece PLANNING durumunda)
+# ============================================================================
+
+
+async def update_session(
+    db: AsyncSession,
+    session_id: uuid.UUID,
+    user: User,
+    payload,  # PresenterSessionUpdate — type kendi modülünde
+) -> PresenterSession:
+    """Oturumun ad/saat/açıklama alanlarını güncelle.
+
+    Yalnızca PLANNING durumundaki oturum değiştirilebilir. Canlıdayken
+    saatini değiştirmek anti-sniping, teklif zaman takibini ve genel
+    kullanıcı deneyimini bozar.
+
+    Sadece sahibi düzenleyebilir; başkasına ait oturum 403 döner.
+    Yalnızca None olmayan alanlar uygulanır (kısmi güncelleme).
+    """
+    session = await get_my_session(db, session_id, user)
+
+    if session.status != PresenterSessionStatus.PLANNING:
+        raise ConflictError(
+            "Yalnızca planlama aşamasındaki oturum düzenlenebilir"
+        )
+
+    if payload.name is not None:
+        session.name = payload.name
+    if payload.scheduled_at is not None:
+        session.scheduled_at = payload.scheduled_at
+    if payload.description is not None:
+        session.description = payload.description
+
+    await db.commit()
+    await db.refresh(session)
+    return session
+
+
+# ============================================================================
 # Lot ekleme
 # ============================================================================
 
