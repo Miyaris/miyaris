@@ -18,6 +18,7 @@ import { isLoggedIn } from "@/lib/session";
 
 const MAX_IMAGE_BYTES = 10 * 1024 * 1024; // 10 MB
 const MAX_PDF_BYTES = 25 * 1024 * 1024; // 25 MB
+const MAX_VIDEO_BYTES = 100 * 1024 * 1024; // 100 MB (60 sn paket açma)
 
 const ALLOWED_IMAGE_TYPES = new Set([
   "image/jpeg",
@@ -28,6 +29,12 @@ const ALLOWED_IMAGE_TYPES = new Set([
 ]);
 
 const ALLOWED_PDF_TYPES = new Set(["application/pdf"]);
+
+const ALLOWED_VIDEO_TYPES = new Set([
+  "video/mp4",
+  "video/quicktime",   // mov (iPhone)
+  "video/webm",
+]);
 
 export async function POST(request: Request): Promise<NextResponse> {
   if (!isLoggedIn()) {
@@ -69,16 +76,21 @@ export async function POST(request: Request): Promise<NextResponse> {
   // Tip + boyut doğrulama
   const isImage = ALLOWED_IMAGE_TYPES.has(file.type);
   const isPdf = ALLOWED_PDF_TYPES.has(file.type);
-  if (!isImage && !isPdf) {
+  const isVideo = ALLOWED_VIDEO_TYPES.has(file.type);
+  if (!isImage && !isPdf && !isVideo) {
     return NextResponse.json(
       {
         detail:
-          "Sadece görsel (JPG, PNG, WEBP, HEIC) veya PDF dosyaları yüklenebilir",
+          "Sadece görsel (JPG, PNG, WEBP, HEIC), PDF veya video (MP4, MOV, WEBM) dosyaları yüklenebilir",
       },
       { status: 415 },
     );
   }
-  const maxBytes = isImage ? MAX_IMAGE_BYTES : MAX_PDF_BYTES;
+  const maxBytes = isImage
+    ? MAX_IMAGE_BYTES
+    : isPdf
+      ? MAX_PDF_BYTES
+      : MAX_VIDEO_BYTES;
   if (file.size > maxBytes) {
     const limitMB = (maxBytes / 1024 / 1024).toFixed(0);
     return NextResponse.json(
@@ -87,14 +99,14 @@ export async function POST(request: Request): Promise<NextResponse> {
     );
   }
 
-  // Vercel Blob'a yükle.
-  //   - `addRandomSuffix: true` → aynı isim çakışmasını önler
-  //   - `access: "public"` → URL otomatik HTTPS public CDN üzerinden
-  //
-  // Dizin prefix'ini dosya tipine göre seçiyoruz: `watches/` veya
-  // `certificates/`. Bu prefix Blob dashboard'da gözle ayırmayı kolaylaştırır.
-  const isPdfFile = isPdf;
-  const prefix = isPdfFile ? "certificates" : "watches";
+  // Vercel Blob'a yükle. Dizin önekini dosya tipine göre seçiyoruz:
+  // `watches/`, `certificates/` veya `unboxing/`. Blob panelinde gözle
+  // ayırmayı kolaylaştırır.
+  const prefix = isPdf
+    ? "certificates"
+    : isVideo
+      ? "unboxing"
+      : "watches";
   const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(0, 80) ||
     "file";
 

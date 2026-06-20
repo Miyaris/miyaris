@@ -61,8 +61,37 @@ class EscrowDetail(BaseModel):
     payment_provider_ref: str | None
     funded_at: datetime | None
     released_at: datetime | None
+    # Sahtekarlik onleme alanlari
+    seller_seal_photo_url: str | None = None
+    seller_seal_uploaded_at: datetime | None = None
+    buyer_unboxing_video_url: str | None = None
+    buyer_unboxing_uploaded_at: datetime | None = None
+    seal_intact: bool | None = None
     created_at: datetime
     updated_at: datetime
+
+
+class SellerSealUpload(BaseModel):
+    """Satici muhurlu kutu fotografi URL'i yukler (kargo oncesi).
+
+    Vercel Blob yuklendikten sonra donen public URL bu uca POST edilir.
+    """
+
+    photo_url: str = Field(min_length=10, max_length=600)
+
+
+class BuyerUnboxingUpload(BaseModel):
+    """Alici paket acma videosu + muhur durumu beyan eder (teslim sonrasi).
+
+    seal_intact False ise escrow DISPUTED durumuna gecer; iade akisi
+    backend tarafindan otomatik baslar.
+    """
+
+    video_url: str = Field(min_length=10, max_length=600)
+    seal_intact: bool = Field(
+        description="True = muhur saglam (akis devam), "
+        "False = muhur kirik (iade akisi tetiklenir)"
+    )
 
 
 class FundRequest(BaseModel):

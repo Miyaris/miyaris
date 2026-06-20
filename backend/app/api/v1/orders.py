@@ -9,9 +9,11 @@ from app.core.dependencies import get_current_user
 from app.models.escrow import EscrowTransaction
 from app.models.user import User
 from app.schemas.escrow import (
+    BuyerUnboxingUpload,
     EscrowDetail,
     EscrowListItem,
     FundRequest,
+    SellerSealUpload,
 )
 from app.services import escrow_service
 from app.utils.pagination import PaginationParams, pagination_dep
@@ -69,6 +71,11 @@ def _detail(escrow: EscrowTransaction, buyer: User, seller: User) -> EscrowDetai
         payment_provider_ref=escrow.payment_provider_ref,
         funded_at=escrow.funded_at,
         released_at=escrow.released_at,
+        seller_seal_photo_url=escrow.seller_seal_photo_url,
+        seller_seal_uploaded_at=escrow.seller_seal_uploaded_at,
+        buyer_unboxing_video_url=escrow.buyer_unboxing_video_url,
+        buyer_unboxing_uploaded_at=escrow.buyer_unboxing_uploaded_at,
+        seal_intact=escrow.seal_intact,
         created_at=escrow.created_at,
         updated_at=escrow.updated_at,
     )
@@ -120,5 +127,49 @@ async def fund_escrow(
 ):
     """Alıcı ödemeyi tamamladı — Güvenli Kasa FONLANDI durumuna geçer."""
     await escrow_service.fund(db, escrow_id, user, payload)
+    escrow, buyer, seller = await escrow_service.get_for_party(db, escrow_id, user)
+    return _detail(escrow, buyer, seller)
+
+
+@router.post(
+    "/orders/{escrow_id}/seller-seal-photo",
+    response_model=EscrowDetail,
+)
+async def upload_seller_seal_photo(
+    escrow_id: uuid.UUID,
+    payload: SellerSealUpload,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Satıcı kargo öncesi kurcalama izi gösteren mühürlü kutu fotoğrafı yükler.
+
+    Vercel Blob yükleme tamamlandıktan sonra dönen kalıcı URL bu uca gönderilir.
+    Tekrar yükleme izinli — satıcı hatalı çekerse yeniden gönderebilir.
+    """
+    await escrow_service.upload_seller_seal_photo(
+        db, escrow_id, user, payload.photo_url
+    )
+    escrow, buyer, seller = await escrow_service.get_for_party(db, escrow_id, user)
+    return _detail(escrow, buyer, seller)
+
+
+@router.post(
+    "/orders/{escrow_id}/buyer-unboxing",
+    response_model=EscrowDetail,
+)
+async def upload_buyer_unboxing(
+    escrow_id: uuid.UUID,
+    payload: BuyerUnboxingUpload,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Alıcı paket açma videosu + mühür durumu beyan eder.
+
+    seal_intact False ise Güvenli Kasa otomatik İTİRAZ EDİLDİ durumuna
+    geçer; admin müdahalesi başlar. True ise akış normal devam eder.
+    """
+    await escrow_service.upload_buyer_unboxing(
+        db, escrow_id, user, payload.video_url, payload.seal_intact
+    )
     escrow, buyer, seller = await escrow_service.get_for_party(db, escrow_id, user)
     return _detail(escrow, buyer, seller)

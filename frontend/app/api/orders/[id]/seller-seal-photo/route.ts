@@ -1,15 +1,15 @@
 /**
- * PATCH /api/presenter/sessions/[id]
+ * POST /api/orders/[id]/seller-seal-photo
  *
- * Sunucu (presenter) oturumun ad / tarih-saat / açıklama alanlarını
- * günceller. Yalnızca PLANNING durumundaki oturum değiştirilebilir
- * (backend 409 atar aksi halde).
+ * Satıcı kurcalama izi gösteren mühürlü kutu fotoğrafını yükler. Önce
+ * /api/upload üzerinden Vercel Blob'a yüklenmiş olur; dönen kalıcı URL
+ * burada backend'e POST edilir.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 import { backendFetch, ApiError } from "@/lib/api";
 
-export async function PATCH(
+export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
@@ -21,9 +21,9 @@ export async function PATCH(
   }
   try {
     const updated = await backendFetch(
-      `/api/v1/presenter/sessions/${params.id}`,
+      `/api/v1/orders/${params.id}/seller-seal-photo`,
       {
-        method: "PATCH",
+        method: "POST",
         body: JSON.stringify(body),
         authenticated: true,
         headers: { "Content-Type": "application/json" },

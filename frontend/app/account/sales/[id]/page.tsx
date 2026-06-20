@@ -5,6 +5,7 @@ import { DELIVERY_LABELS } from "@/components/account/DeliveryMethodPicker";
 import { EscrowStatusBadge } from "@/components/account/EscrowStatusBadge";
 import { EscrowTimeline } from "@/components/account/EscrowTimeline";
 import { PAYMENT_LABELS } from "@/components/account/PaymentMethodPicker";
+import { SellerSealUploadForm } from "@/components/account/SellerSealUploadForm";
 import { Container } from "@/components/shared/Container";
 import { ApiError, backendFetch } from "@/lib/api";
 import { formatUSD } from "@/lib/format";
@@ -153,6 +154,17 @@ export default async function SaleDetailPage({
               aktarılacak.
             </p>
           </div>
+
+          {/* Sahtekarlik onleme: muhurlu kutu fotografi yukleme.
+              Yalniz para yatirildiktan ve akis kapanmadan once izinli. */}
+          {sale.status !== "pending_payment" &&
+            sale.status !== "released" &&
+            sale.status !== "refunded" && (
+              <SellerSealUploadForm
+                escrowId={sale.id}
+                existingPhotoUrl={sale.seller_seal_photo_url}
+              />
+            )}
 
           <div>
             <h2 className="font-display text-xl mb-4">Süreç</h2>

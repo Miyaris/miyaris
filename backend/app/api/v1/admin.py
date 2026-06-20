@@ -235,6 +235,11 @@ def _escrow_detail(
         payment_provider_ref=escrow.payment_provider_ref,
         funded_at=escrow.funded_at,
         released_at=escrow.released_at,
+        seller_seal_photo_url=escrow.seller_seal_photo_url,
+        seller_seal_uploaded_at=escrow.seller_seal_uploaded_at,
+        buyer_unboxing_video_url=escrow.buyer_unboxing_video_url,
+        buyer_unboxing_uploaded_at=escrow.buyer_unboxing_uploaded_at,
+        seal_intact=escrow.seal_intact,
         created_at=escrow.created_at,
         updated_at=escrow.updated_at,
     )

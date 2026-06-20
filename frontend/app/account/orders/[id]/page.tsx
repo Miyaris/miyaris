@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { FundButton } from "@/app/account/orders/[id]/FundButton";
+import { BuyerUnboxingForm } from "@/components/account/BuyerUnboxingForm";
 import {
   DELIVERY_LABELS,
 } from "@/components/account/DeliveryMethodPicker";
@@ -126,6 +127,14 @@ export default async function OrderDetailPage({
         <div className="lg:col-span-7 space-y-8">
           {order.status === "pending_payment" && (
             <FundButton escrowId={order.id} amount={order.amount} />
+          )}
+
+          {/* Paket açma beyanı — saat ulaştığında (SHIPPED_TO_BUYER veya
+              DELIVERED) ya da beyan zaten yapıldıysa (özet kart) gösterilir. */}
+          {(order.status === "shipped_to_buyer" ||
+            order.status === "delivered" ||
+            order.buyer_unboxing_video_url) && (
+            <BuyerUnboxingForm escrow={order} />
           )}
 
           <div>

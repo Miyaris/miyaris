@@ -6,7 +6,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime
+from sqlalchemy import Boolean, DateTime
 from sqlalchemy import Enum as SAEnum
 from sqlalchemy import ForeignKey, Numeric, String
 from sqlalchemy.dialects.postgresql import UUID
@@ -91,5 +91,21 @@ class EscrowTransaction(Base, TimestampMixin):
     payment_provider_ref: Mapped[str | None] = mapped_column(String(120))
     funded_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     released_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    # Sahtekarlik onleme akisi —————————————————————————————————————————
+    # Satici kargoya verirken kurcalama izi gosteren muhurlu kutu fotografi.
+    seller_seal_photo_url: Mapped[str | None] = mapped_column(String(600))
+    seller_seal_uploaded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    # Alici paket acma anini 60 saniyelik videoyla kaydeder.
+    buyer_unboxing_video_url: Mapped[str | None] = mapped_column(String(600))
+    buyer_unboxing_uploaded_at: Mapped[datetime | None] = mapped_column(
+        DateTime(timezone=True)
+    )
+    # Alici muhrun saglam mi kirik mi oldugunu beyan eder.
+    # NULL = henuz beyan yok | True = saglam (akis devam)
+    # False = kirik (escrow DISPUTED durumuna gecer, iade tetiklenir)
+    seal_intact: Mapped[bool | None] = mapped_column(Boolean)
 
     auction: Mapped[Auction] = relationship(back_populates="escrow")

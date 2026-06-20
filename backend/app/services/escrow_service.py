@@ -210,11 +210,11 @@ async def fund(
     escrow.payment_method = payload.payment_method
     escrow.delivery_method = payload.delivery_method
     escrow.status = EscrowStatus.FUNDED
-    escrow.payment_provider_ref = payload.payment_provider_ref or "mock"
+    escrow.payment_provider_ref = payload.payment_provider_ref or "deneme"
     escrow.funded_at = datetime.now(timezone.utc)
 
     # DIRECT_SALE akışı: ödeme alındığı anda saat ACTIVE → AWAITING_EXPERTISE
-    # geçişi yapılır (ekspertiz için partner mağazaya teslim sırası). AUCTION
+    # geçişi yapılır (ekspertiz için anlasmali magazaya teslim sırası). AUCTION
     # tarafında saat zaten scheduler/buy_now sırasında SOLD yapılıyor.
     watch = escrow.auction.watch if escrow.auction else None
     if (
@@ -268,10 +268,98 @@ async def advance(
     return escrow
 
 
+# === Sahtekarlik onleme akisi ===
+
+
+async def upload_seller_seal_photo(
+    db: AsyncSession,
+    escrow_id: uuid.UUID,
+    user: User,
+    photo_url: str,
+) -> EscrowTransaction:
+    """Satici kargo oncesi muhurlu kutu fotografini yukler.
+
+    Yalniz satici kendi escrow'unun fotografini koyabilir. Tekrar
+    yukleme izinli (uzerine yazilir) — sat ici fotografi hatali cekerse
+    yeniden gonderebilir.
+
+    Akis: en azindan FUNDED durumunda olmali. PENDING_PAYMENT'ta yukleme
+    erken (para yatmadi, kargo riskli), RELEASED/REFUNDED'da gec (akis
+    bitmis).
+    """
+    from datetime import datetime, timezone
+
+    escrow, _, _ = await _load_with_users(db, escrow_id)
+    if user.id != escrow.seller_id:
+        raise ForbiddenError("Bu siparis size ait degil")
+    if escrow.status in (
+        EscrowStatus.PENDING_PAYMENT,
+        EscrowStatus.RELEASED,
+        EscrowStatus.REFUNDED,
+    ):
+        raise ConflictError(
+            "Muhur fotografi su anda yuklenemez (akis durumu uygun degil)"
+        )
+
+    escrow.seller_seal_photo_url = photo_url
+    escrow.seller_seal_uploaded_at = datetime.now(timezone.utc)
+    await db.commit()
+    await db.refresh(escrow)
+    return escrow
+
+
+async def upload_buyer_unboxing(
+    db: AsyncSession,
+    escrow_id: uuid.UUID,
+    user: User,
+    video_url: str,
+    seal_intact: bool,
+) -> EscrowTransaction:
+    """Alici paket acma videosu + muhur durumu beyan eder.
+
+    seal_intact=False ise escrow DISPUTED durumuna gecer; admin
+    panelinden manuel iade akisi baslar. seal_intact=True ise akis
+    normal ilerler (alici sonraki adimda teslim aldigini onaylar).
+
+    Yalniz alici kendi escrow'una koyabilir. Tekrar yukleme izinli ama
+    bir kez DISPUTED'a gectiyse beyan kilitli (admin mudahale eder).
+    """
+    from datetime import datetime, timezone
+
+    escrow, _, _ = await _load_with_users(db, escrow_id)
+    if user.id != escrow.buyer_id:
+        raise ForbiddenError("Bu siparis size ait degil")
+    if escrow.status == EscrowStatus.DISPUTED:
+        raise ConflictError(
+            "Itiraz acilmis siparise yeni beyan eklenemez; admin yardim eder"
+        )
+    if escrow.status in (
+        EscrowStatus.PENDING_PAYMENT,
+        EscrowStatus.FUNDED,
+        EscrowStatus.REFUNDED,
+    ):
+        raise ConflictError(
+            "Paket acma videosu su anda yuklenemez (akis durumu uygun degil)"
+        )
+
+    escrow.buyer_unboxing_video_url = video_url
+    escrow.buyer_unboxing_uploaded_at = datetime.now(timezone.utc)
+    escrow.seal_intact = seal_intact
+
+    # Muhur kirik beyani: otomatik DISPUTED. Admin sonra iade akisini
+    # tetikler veya satici/alici uyusmazliginda hakem olur.
+    if not seal_intact:
+        escrow.status = EscrowStatus.DISPUTED
+
+    await db.commit()
+    await db.refresh(escrow)
+    return escrow
+
+
 async def refund(
     db: AsyncSession, escrow_id: uuid.UUID
 ) -> EscrowTransaction:
-    """Admin: terminal red. Para alıcıya iade edilir (mock).
+    """Admin: terminal red. Para alıcıya iade edilir (deneme).
 
     RELEASED haricinde her state'ten yapılabilir. RELEASED ise para zaten
     satıcıya gitmiş — chargeback gerekir, MVP scope dışı.

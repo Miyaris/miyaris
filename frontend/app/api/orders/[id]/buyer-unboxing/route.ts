@@ -1,15 +1,15 @@
 /**
- * PATCH /api/presenter/sessions/[id]
+ * POST /api/orders/[id]/buyer-unboxing
  *
- * Sunucu (presenter) oturumun ad / tarih-saat / açıklama alanlarını
- * günceller. Yalnızca PLANNING durumundaki oturum değiştirilebilir
- * (backend 409 atar aksi halde).
+ * Alıcı paket açma videosu + mühür durumu beyan eder. seal_intact false
+ * ise backend Güvenli Kasa'yı İTİRAZ EDİLDİ durumuna çevirir; admin iade
+ * akışını başlatır.
  */
 import { NextRequest, NextResponse } from "next/server";
 
 import { backendFetch, ApiError } from "@/lib/api";
 
-export async function PATCH(
+export async function POST(
   request: NextRequest,
   { params }: { params: { id: string } },
 ) {
@@ -21,9 +21,9 @@ export async function PATCH(
   }
   try {
     const updated = await backendFetch(
-      `/api/v1/presenter/sessions/${params.id}`,
+      `/api/v1/orders/${params.id}/buyer-unboxing`,
       {
-        method: "PATCH",
+        method: "POST",
         body: JSON.stringify(body),
         authenticated: true,
         headers: { "Content-Type": "application/json" },

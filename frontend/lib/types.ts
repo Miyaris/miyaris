@@ -342,6 +342,12 @@ export interface EscrowDetail {
   payment_provider_ref: string | null;
   funded_at: string | null;
   released_at: string | null;
+  // Sahtekarlik onleme alanlari
+  seller_seal_photo_url: string | null;
+  seller_seal_uploaded_at: string | null;
+  buyer_unboxing_video_url: string | null;
+  buyer_unboxing_uploaded_at: string | null;
+  seal_intact: boolean | null;
   created_at: string;
   updated_at: string;
 }
