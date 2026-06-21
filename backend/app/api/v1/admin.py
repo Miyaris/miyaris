@@ -13,7 +13,6 @@ from app.core.dependencies import get_current_user, require_role
 from app.models.bid import Bid
 from app.models.user import User, UserRole
 from app.models.escrow import EscrowStatus, EscrowTransaction
-from app.models.watch import Watch
 from app.utils.exceptions import ConflictError
 from app.schemas.admin import (
     AdminActiveSetRequest,

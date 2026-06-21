@@ -257,9 +257,13 @@ async def place_bid(
 
     # ----- Outbid e-postası — fire & forget ----------------------------------
     # Email göndermek bid commit'inin yanıt süresine eklenmesin; arka planda at.
+    # Proxy çözümü sonrası KAZANAN her zaman gelen kullanıcı olmayabilir
+    # (lider proxy'si geleni otomatik geçmiş olabilir). Bu yüzden "outbid"
+    # bildirimini, önceki lider ARTIK kazanan değilse gönderiyoruz — yani
+    # kıyas bid.bidder_id (yeni standing lider) ile yapılır, user.id ile değil.
     if (
         prev_bidder is not None
-        and prev_bidder.id != user.id
+        and prev_bidder.id != bid.bidder_id
         and prev_amount_str is not None
     ):
         try:

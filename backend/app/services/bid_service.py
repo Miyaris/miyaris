@@ -10,7 +10,6 @@ from sqlalchemy.orm import selectinload
 from app.models.auction import Auction, AuctionStatus
 from app.models.bid import Bid
 from app.models.user import User
-from app.models.watch import Watch
 from app.schemas.bid import BidCreate
 from app.utils.exceptions import ConflictError, ForbiddenError, NotFoundError
 
@@ -120,23 +119,139 @@ async def place_bid(
             "Proxy bid için max_proxy_amount belirtilmeli ve amount'tan büyük olmalı"
         )
 
-    bid = Bid(
-        auction_id=auction.id,
-        bidder_id=bidder.id,
-        amount=payload.amount,
-        is_proxy=payload.is_proxy,
-        max_proxy_amount=payload.max_proxy_amount,
+    # ===== Proxy (vekil) teklif çözümü =======================================
+    # Her teklif veren bir "tavan" ile temsil edilir:
+    #   - Proxy teklif  → tavan = max_proxy_amount (sistem otomatik artırır)
+    #   - Normal teklif → tavan = amount (girilen tutar; otomatik koruma yok)
+    #
+    # Kazanan en yüksek tavana sahip olandır; fiyat ise ikinci en yüksek
+    # tavanın bir artış üstüne çıkar (eBay tarzı vekil teklif). Böylece proxy
+    # teklif veren, rakibini bir artış geçecek kadar otomatik yükseltilir ama
+    # gereksiz yere tüm tavanını ödemez. Tavanlar eşitse, tavanı ÖNCE koyan
+    # (mevcut lider) kazanır.
+    #
+    # placed_at modelde server_default=func.now() (transaction zamanı) → aynı
+    # commit'teki satırlar EŞİT zaman damgası alır. Scheduler eşit-tutarda
+    # tie-break'i placed_at ASC ile yapar; bu yüzden kazanan satırın zaman
+    # damgasını burada AÇIKÇA set ediyoruz (yoksa eşitlikte kazanan rastgele).
+    inc = auction.min_bid_increment
+
+    incoming_max = (
+        payload.max_proxy_amount
+        if payload.is_proxy and payload.max_proxy_amount is not None
+        else payload.amount
     )
-    db.add(bid)
-    auction.current_price = payload.amount
+
+    def _effective_max(b: Bid) -> Decimal:
+        if b.is_proxy and b.max_proxy_amount is not None:
+            return b.max_proxy_amount
+        return b.amount
+
+    existing_bids = (
+        await db.execute(select(Bid).where(Bid.auction_id == auction.id))
+    ).scalars().all()
+
+    # Mevcut standing lider = en yüksek efektif tavan (eşitlikte en erken).
+    leader_id: uuid.UUID | None = None
+    leader_max: Decimal | None = None
+    leader_placed = None
+    for b in existing_bids:
+        em = _effective_max(b)
+        if (
+            leader_max is None
+            or em > leader_max
+            or (em == leader_max and leader_placed is not None and b.placed_at < leader_placed)
+        ):
+            leader_id, leader_max, leader_placed = b.bidder_id, em, b.placed_at
+
+    def _bin_cap(price: Decimal) -> Decimal:
+        # Otomatik teklif 'Hemen Al' fiyatına ulaşmasın — bir artış altında tut.
+        if auction.buy_it_now_price is not None and price >= auction.buy_it_now_price:
+            return auction.buy_it_now_price - inc
+        return price
+
+    bids_to_add: list[tuple[Bid, datetime]] = []  # (bid, açık placed_at)
+
+    if leader_id is None:
+        # İlk teklif — rakip yok, girilen tutar geçerli olur.
+        final_price = payload.amount
+        leading_bid = Bid(
+            auction_id=auction.id,
+            bidder_id=bidder.id,
+            amount=final_price,
+            is_proxy=payload.is_proxy,
+            max_proxy_amount=payload.max_proxy_amount,
+        )
+        bids_to_add.append((leading_bid, now))
+    elif leader_id == bidder.id:
+        # Zaten en yüksek tavan kendisinde — kendine karşı teklif anlamsız.
+        # (Tavanını yükseltmek isterse mevcut MVP'de desteklenmiyor.)
+        raise ConflictError("Şu anda en yüksek teklif zaten sizde.")
+    elif incoming_max > leader_max:
+        # Gelen kazanır. Proxy ise lider tavanı + bir artış öder (kalan tavanı
+        # korunur); normal teklifse girdiği literal tutarı öder.
+        final_price = (
+            _bin_cap(min(incoming_max, leader_max + inc))
+            if payload.is_proxy
+            else payload.amount
+        )
+        # Mağlup liderin tavanına otomatik çıkışı — rekabeti audit'e yansıtır.
+        loser_bid = Bid(
+            auction_id=auction.id,
+            bidder_id=leader_id,
+            amount=leader_max,
+            is_proxy=True,
+            max_proxy_amount=leader_max,
+        )
+        leading_bid = Bid(
+            auction_id=auction.id,
+            bidder_id=bidder.id,
+            amount=final_price,
+            is_proxy=payload.is_proxy,
+            max_proxy_amount=payload.max_proxy_amount,
+        )
+        # Farklı tutarlar → kazanan en yeni görünür (placed_at büyük).
+        bids_to_add.append((loser_bid, now))
+        bids_to_add.append((leading_bid, now + timedelta(milliseconds=1)))
+    else:
+        # Lider üstün kalır; otomatik karşı teklifle geleni bir artış geçer.
+        final_price = _bin_cap(min(leader_max, incoming_max + inc))
+        loser_bid = Bid(
+            auction_id=auction.id,
+            bidder_id=bidder.id,
+            amount=incoming_max,
+            is_proxy=payload.is_proxy,
+            max_proxy_amount=payload.max_proxy_amount,
+        )
+        leading_bid = Bid(
+            auction_id=auction.id,
+            bidder_id=leader_id,
+            amount=final_price,
+            is_proxy=True,
+            max_proxy_amount=leader_max,
+        )
+        if final_price == incoming_max:
+            # Tavanlar eşit → lider önce geldiği için kazanır: lidere ERKEN
+            # zaman damgası ver (scheduler eşitlikte placed_at ASC kullanır).
+            bids_to_add.append((leading_bid, now))
+            bids_to_add.append((loser_bid, now + timedelta(milliseconds=1)))
+        else:
+            bids_to_add.append((loser_bid, now))
+            bids_to_add.append((leading_bid, now + timedelta(milliseconds=1)))
+
+    for b, ts in bids_to_add:
+        b.placed_at = ts
+        db.add(b)
+
+    auction.current_price = final_price
 
     # Anti-sniping
     if end_time - now < ANTI_SNIPING_WINDOW:
         auction.extended_until = now + ANTI_SNIPING_WINDOW
 
     await db.commit()
-    await db.refresh(bid)
-    return bid
+    await db.refresh(leading_bid)
+    return leading_bid
 
 
 async def list_bids_for_auction(

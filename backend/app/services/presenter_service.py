@@ -21,7 +21,7 @@ import uuid
 from datetime import datetime, timedelta, timezone
 
 from slugify import slugify
-from sqlalchemy import func, select
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -233,8 +233,8 @@ async def add_lot(
         )
     db.add(watch)
 
-    # Lot için "placeholder" zaman penceresi — presenter manuel canlıya alır
-    now = datetime.now(timezone.utc)
+    # Lot için "placeholder" zaman penceresi — presenter manuel canlıya alır.
+    # starts_at/ends_at session.scheduled_at'ten türetilir.
     auction = Auction(
         watch_id=watch_id,
         starting_price=payload.starting_price,
