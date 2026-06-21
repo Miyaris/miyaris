@@ -302,17 +302,29 @@ async def mark_delivered(escrow_id: uuid.UUID, db: AsyncSession = Depends(get_db
     return _escrow_detail(escrow, buyer, seller)
 
 
-@router.post("/escrow/{escrow_id}/release", response_model=EscrowDetail)
+# Para hareketleri (release + refund) yalnızca ADMIN. Router-level guard
+# ADMIN+EXPERT'i geçirir; bu iki uç kendi guard'ıyla EXPERT'i 403'ler. Görev
+# ayrımı: EXPERT operasyonel adımları (mark-received/authenticate/shipped/
+# delivered) yapar ama parayı satıcıya/alıcıya hareket ettiremez.
+@router.post(
+    "/escrow/{escrow_id}/release",
+    response_model=EscrowDetail,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def release_funds(escrow_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """Para satıcıya release: DELIVERED → RELEASED. Akışın sonu."""
+    """Para satıcıya release: DELIVERED → RELEASED. Akışın sonu. (ADMIN only)"""
     await escrow_service.advance(db, escrow_id, EscrowStatus.DELIVERED)
     escrow, buyer, seller = await escrow_service.get_admin(db, escrow_id)
     return _escrow_detail(escrow, buyer, seller)
 
 
-@router.post("/escrow/{escrow_id}/refund", response_model=EscrowDetail)
+@router.post(
+    "/escrow/{escrow_id}/refund",
+    response_model=EscrowDetail,
+    dependencies=[Depends(require_role(UserRole.ADMIN))],
+)
 async def refund(escrow_id: uuid.UUID, db: AsyncSession = Depends(get_db)):
-    """Terminal red — para alıcıya iade. RELEASED escrow için yapılamaz."""
+    """Terminal red — para alıcıya iade. RELEASED escrow için yapılamaz. (ADMIN only)"""
     await escrow_service.refund(db, escrow_id)
     escrow, buyer, seller = await escrow_service.get_admin(db, escrow_id)
     return _escrow_detail(escrow, buyer, seller)
