@@ -111,9 +111,17 @@ class Settings(BaseSettings):
     DEPOSIT_MOCK_ENABLED: bool = False
 
     # ---- Production hardening flag ----
-    # True iken: CORS regex sıkı, CSRF zorunlu, HS256 fallback uyarı log'lar,
-    # security headers preload-ready HSTS. False (dev): permissive defaults.
+    # True iken: CORS sıkı (yalnız www+apex miyaris.com), HS256 fallback uyarı
+    # log'lar, security headers. False (dev): permissive defaults.
     # Render'da APP_ENV=production set'le.
+    #
+    # CSRF notu: Ayrı bir CSRF-token katmanı YOK. Koruma cookie'lerin
+    # SameSite=Lax ayarından gelir (bkz. frontend/lib/session.ts) — tarayıcı
+    # cross-site POST/PUT/DELETE isteklerinde auth cookie'sini göndermez, bu
+    # da state-değiştiren işlemler için CSRF'i etkisiz kılar. State-değiştiren
+    # tek GET (/auth/verify-email) cookie ile değil URL'deki imzalı JWT ile
+    # çalışır. CORS'ta izin verilen X-CSRF-Token header'ı ileride token tabanlı
+    # defense-in-depth eklenirse diye ayrılmıştır; şu an doğrulanmıyor.
     APP_ENV: str = "development"
 
     # Servisler arası auth (örn: BBB finans ajanları → Miyaris API).
