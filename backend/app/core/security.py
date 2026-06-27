@@ -53,6 +53,24 @@ def verify_password(plain: str, hashed: str) -> bool:
         return False
 
 
+# Sabit-zamanlı login için kukla hash — import anında bir kez üretilir.
+# Kullanıcı bulunamadığında bunun üzerine bcrypt çalıştırıp gerçek doğrulamayla
+# aynı maliyeti harcarız; böylece "e-posta var mı yok mu" yanıt süresi farkından
+# (timing enumeration) anlaşılamaz.
+_DUMMY_BCRYPT_HASH = bcrypt.hashpw(
+    b"miyaris-timing-equalizer", bcrypt.gensalt()
+).decode("utf-8")
+
+
+def dummy_verify_password() -> None:
+    """Kullanıcı yokken çağrılır — verify_password ile eşdeğer bcrypt maliyeti
+    harcar. Dönüş değeri kullanılmaz; tek amacı zamanı eşitlemek."""
+    try:
+        bcrypt.checkpw(b"x", _DUMMY_BCRYPT_HASH.encode("utf-8"))
+    except (ValueError, TypeError):
+        pass
+
+
 # ============================================================================
 # Anahtar yönetimi — RS256 PEM parse + cache
 # ============================================================================

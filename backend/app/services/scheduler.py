@@ -53,12 +53,18 @@ async def _process_tick() -> tuple[
         now = datetime.now(timezone.utc)
 
         # 1) SCHEDULED → LIVE
+        # FOR UPDATE SKIP LOCKED → birden çok scheduler instance'ı (multi-replica)
+        # aynı satırı eşzamanlı işlemesin. of=Auction yalnızca auctions satırını
+        # kilitler (lazy=joined watch'ın nullable tarafını kilitlemez). Kilitli
+        # satırı bekleme yerine atla → diğer instance zaten işliyor demektir.
         scheduled = (
             await db.execute(
-                select(Auction).where(
+                select(Auction)
+                .where(
                     Auction.status == AuctionStatus.SCHEDULED,
                     Auction.starts_at <= now,
                 )
+                .with_for_update(skip_locked=True, of=Auction)
             )
         ).scalars().all()
 
@@ -79,6 +85,10 @@ async def _process_tick() -> tuple[
         # selectinload zinciri: auction.watch.seller'a kadar — async path'te
         # implicit lazy load `MissingGreenlet`e neden olur, email gönderimi
         # için satıcı kullanıcısı önden çekilmeli.
+        # FOR UPDATE SKIP LOCKED → multi-replica güvenliği. selectinload watch'ı
+        # ayrı sorguda yükler, ana sorguda JOIN yok → of=Auction yalnız auctions
+        # satırını kilitler. Kilitli (başka instance işliyor) satırlar atlanır;
+        # böylece bir müzayede iki kez kapanıp çift escrow oluşturulamaz.
         live = (
             await db.execute(
                 select(Auction)
@@ -86,6 +96,7 @@ async def _process_tick() -> tuple[
                     selectinload(Auction.watch).selectinload(Watch.seller)
                 )
                 .where(Auction.status == AuctionStatus.LIVE)
+                .with_for_update(skip_locked=True, of=Auction)
             )
         ).scalars().all()
 

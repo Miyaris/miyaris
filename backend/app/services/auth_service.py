@@ -12,6 +12,7 @@ from app.core.security import (
     create_password_reset_token,
     create_refresh_token,
     decode_token,
+    dummy_verify_password,
     hash_password,
     verify_password,
 )
@@ -135,7 +136,12 @@ async def register_user(db: AsyncSession, payload: UserCreate) -> User:
 async def authenticate(db: AsyncSession, email: str, password: str) -> User:
     result = await db.execute(select(User).where(User.email == email))
     user = result.scalar_one_or_none()
-    if not user or not verify_password(password, user.hashed_password):
+    if not user:
+        # Kullanıcı yok — yine de bcrypt çalıştır ki yanıt süresi var olan
+        # hesaptaki gibi olsun (e-posta enumeration timing sızıntısını önle).
+        dummy_verify_password()
+        raise AuthError("E-posta veya şifre hatalı")
+    if not verify_password(password, user.hashed_password):
         raise AuthError("E-posta veya şifre hatalı")
     if not user.is_active:
         raise AuthError("Hesap pasif durumda")
