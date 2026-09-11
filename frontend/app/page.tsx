@@ -63,10 +63,11 @@ export default async function HomePage() {
               className="mb-6 border-l-2 border-brass bg-ivory-50 px-4 py-3 text-sm text-charcoal-500 leading-relaxed"
             >
               Bu proje askıya alınmıştır. Arayüz inceleme amacıyla yayında
-              tutulmaktadır.
+              tutulmaktadır. (This project has been suspended. The interface
+              is kept online for review purposes.)
             </p>
             <div className="grid grid-cols-3 gap-4 text-center">
-              <Stat number="312" label="Sertifikalı Saat" />
+              <Stat number="0" label="Sertifikalı Saat" />
               <Stat number="48 Saat" label="Ekspertiz Süresi" />
               <Stat number="%100" label="Emanet Garantisi" />
             </div>
