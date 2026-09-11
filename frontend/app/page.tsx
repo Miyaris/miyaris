@@ -57,10 +57,19 @@ export default async function HomePage() {
             </div>
           </div>
 
-          <div className="md:col-span-5 grid grid-cols-3 gap-4 text-center">
-            <Stat number="312" label="Sertifikalı Saat" />
-            <Stat number="48 Saat" label="Ekspertiz Süresi" />
-            <Stat number="%100" label="Emanet Garantisi" />
+          <div className="md:col-span-5">
+            <p
+              role="note"
+              className="mb-6 border-l-2 border-brass bg-ivory-50 px-4 py-3 text-sm text-charcoal-500 leading-relaxed"
+            >
+              Bu proje askıya alınmıştır. Arayüz inceleme amacıyla yayında
+              tutulmaktadır.
+            </p>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <Stat number="312" label="Sertifikalı Saat" />
+              <Stat number="48 Saat" label="Ekspertiz Süresi" />
+              <Stat number="%100" label="Emanet Garantisi" />
+            </div>
           </div>
         </Container>
       </section>
